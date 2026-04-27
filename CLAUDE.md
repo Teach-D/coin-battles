@@ -25,17 +25,17 @@
 
 ## 기술 스택
 
-| 영역 | 기술 |
-|------|------|
-| 프론트엔드 | Next.js 14 (App Router), TailwindCSS, Recharts |
-| 모바일 | React.js 웹뷰 (PWA + 앱 래핑), FCM 푸시 |
-| 백엔드 | Spring Boot 3.x + Kotlin Coroutine |
-| 실시간 통신 | Spring WebSocket + STOMP, Redis Pub/Sub |
-| 데이터베이스 | PostgreSQL (월별 Range 파티셔닝, 커버링 인덱스), Redis 7.x |
-| 비동기 처리 | Spring ApplicationEventPublisher + @Async (MVP 단계) |
+| 영역 | 기술                                                   |
+|------|------------------------------------------------------|
+| 프론트엔드 | React 18 (Vite), TailwindCSS, Recharts, Zustand, TanStack Query |
+| 모바일 | React 웹뷰 (PWA + 앱 래핑), FCM 푸시                           |
+| 백엔드 | Spring Boot 3.x + Kotlin Coroutine                   |
+| 실시간 통신 | Spring WebSocket + STOMP, Redis Pub/Sub              |
+| 데이터베이스 | PostgreSQL (월별 Range 파티셔닝, 커버링 인덱스), Redis 7.x       |
+| 비동기 처리 | Spring ApplicationEventPublisher + @Async (MVP 단계)   |
 | 외부 시세 | 업비트 WebSocket (원화 200개+), 바이낸스 WebSocket (글로벌 800개+) |
-| 배포 | Oracle Cloud Free Tier + Docker + GitHub Actions |
-| 모니터링 | Prometheus + Grafana |
+| 배포 | Oracle Cloud Free Tier + Docker + GitHub Actions     |
+| 모니터링 | Prometheus + Grafana                                 |
 
 ## MVP 핵심 기능 5가지
 
