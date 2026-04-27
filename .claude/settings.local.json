@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/wkadh/.claude/**)",
+      "Bash(docker info *)",
+      "Bash(gh --version)",
+      "Bash(winget --version)",
+      "PowerShell(winget search *)",
+      "mcp__github__get_latest_release",
+      "Bash(rm \"C:\\\\Users\\\\wkadh\\\\OneDrive\\\\바탕 화면\\\\coding\\\\project\\\\coin-battle\\\\.claude\\\\commands\\\\github-issue-branch.md\")",
+      "Bash(rmdir \"C:\\\\Users\\\\wkadh\\\\OneDrive\\\\바탕 화면\\\\coding\\\\project\\\\coin-battle\\\\.claude\\\\commands\")",
+      "mcp__github__issue_write",
+      "mcp__github__create_branch",
+      "Bash(git fetch *)",
+      "Bash(git checkout *)",
+      "Bash(cp *)",
+      "Bash(mkdir -p \"C:/Users/wkadh/OneDrive/바탕 화면/coding/project/coin-battle/.claude/agent-memory/frontend-dev-agent\")",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "mcp__github__issue_read",
+      "mcp__github__create_pull_request",
+      "mcp__github__merge_pull_request",
+      "Bash(git pull *)"
+    ]
+  }
+}
