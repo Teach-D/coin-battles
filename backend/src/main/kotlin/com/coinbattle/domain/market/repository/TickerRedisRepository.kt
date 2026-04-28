@@ -11,7 +11,7 @@ import java.time.Instant
 class TickerRedisRepository(
     private val stringRedisTemplate: StringRedisTemplate
 ) {
-    private val ttl = Duration.ofSeconds(3)
+    private val ttl = Duration.ofSeconds(30)
     private val MARKETS_KEY = "ticker:markets"
 
     fun save(ticker: TickerResponse) {
