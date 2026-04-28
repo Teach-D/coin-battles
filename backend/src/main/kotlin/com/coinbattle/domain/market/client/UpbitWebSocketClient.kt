@@ -53,6 +53,7 @@ class UpbitWebSocketClient(
             return
         }
 
+        tickerRedisRepository.saveMarkets(markets)
         val subscribePayload = buildSubscribePayload(markets)
         log.info("업비트 WebSocket 연결 시작 — 마켓 {}개", markets.size)
 

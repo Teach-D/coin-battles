@@ -2,7 +2,6 @@ package com.coinbattle.domain.market.repository
 
 import com.coinbattle.domain.market.dto.response.ChangeType
 import com.coinbattle.domain.market.dto.response.TickerResponse
-import org.springframework.data.redis.core.ScanOptions
 import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.stereotype.Repository
 import java.time.Duration
@@ -13,6 +12,7 @@ class TickerRedisRepository(
     private val stringRedisTemplate: StringRedisTemplate
 ) {
     private val ttl = Duration.ofSeconds(3)
+    private val MARKETS_KEY = "ticker:markets"
 
     fun save(ticker: TickerResponse) {
         val key = "ticker:${ticker.market}"
@@ -41,22 +41,13 @@ class TickerRedisRepository(
         return fields.toTickerResponse()
     }
 
-    fun findAll(): List<TickerResponse> {
-        val scanOptions = ScanOptions.scanOptions()
-            .match("ticker:*")
-            .count(200)
-            .build()
-        val keys = stringRedisTemplate.execute { connection ->
-            connection.keyCommands().scan(scanOptions).use { cursor ->
-                cursor.asSequence().map { String(it) }.toList()
-            }
-        } ?: emptyList()
+    fun saveMarkets(markets: List<String>) {
+        stringRedisTemplate.opsForSet().add(MARKETS_KEY, *markets.toTypedArray())
+    }
 
-        return keys.mapNotNull { key ->
-            stringRedisTemplate.opsForHash<String, String>().entries(key)
-                .takeIf { it.isNotEmpty() }
-                ?.toTickerResponse()
-        }
+    fun findAll(): List<TickerResponse> {
+        val markets = stringRedisTemplate.opsForSet().members(MARKETS_KEY) ?: return emptyList()
+        return markets.mapNotNull { findByMarket(it) }
     }
 
     fun findByMarkets(markets: List<String>): List<TickerResponse> =

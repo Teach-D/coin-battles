@@ -91,8 +91,11 @@ function SkeletonRow() {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export function MarketListPage() {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const { isLoading, isError, refetch } = useMarketTickers();
   const tickers = useTickerStore((s) => s.tickers);
   const markets = Array.from(tickers.keys());
@@ -103,6 +106,13 @@ export function MarketListPage() {
     getCoinSymbol(t.market).toLowerCase().includes(search.toLowerCase())
   );
   const sorted = [...filtered].sort((a, b) => b.accTradePrice24h - a.accTradePrice24h);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   return (
     <div className="min-h-screen bg-[#0C0C0D] text-white">
@@ -114,6 +124,9 @@ export function MarketListPage() {
           <span className="text-xs bg-[#2DD4BF]/20 text-[#2DD4BF] px-2 py-0.5 rounded-full font-medium">
             실시간
           </span>
+          {!isLoading && sorted.length > 0 && (
+            <span className="text-xs text-zinc-600 ml-auto">{sorted.length}개</span>
+          )}
         </div>
       </header>
 
@@ -123,7 +136,7 @@ export function MarketListPage() {
             type="text"
             placeholder="코인 검색..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
           />
         </div>
@@ -149,7 +162,7 @@ export function MarketListPage() {
 
         {isLoading && (
           <div>
-            {Array.from({ length: 20 }).map((_, i) => (
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
               <SkeletonRow key={i} />
             ))}
           </div>
@@ -157,7 +170,7 @@ export function MarketListPage() {
 
         {!isLoading && !isError && (
           <AnimatePresence>
-            {sorted.map((ticker) => (
+            {paginated.map((ticker) => (
               <TickerRow key={ticker.market} ticker={ticker} />
             ))}
           </AnimatePresence>
@@ -167,6 +180,51 @@ export function MarketListPage() {
           <p className="text-center py-20 text-zinc-600 text-sm">
             "{search}"에 대한 결과가 없습니다
           </p>
+        )}
+
+        {!isLoading && !isError && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 px-4 py-4 border-t border-zinc-800">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-xs rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              이전
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                  if (idx > 0 && (arr[idx - 1] as number) + 1 < p) acc.push('...');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${i}`} className="px-1 text-xs text-zinc-600">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p as number)}
+                      className={`w-7 h-7 text-xs rounded-lg transition-colors ${
+                        page === p
+                          ? 'bg-orange-500 text-white font-semibold'
+                          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+            </div>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-xs rounded-lg bg-zinc-800 text-zinc-400 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              다음
+            </button>
+          </div>
         )}
       </main>
     </div>
