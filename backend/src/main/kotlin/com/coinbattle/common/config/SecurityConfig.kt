@@ -28,8 +28,11 @@ class SecurityConfig(
             .authorizeHttpRequests {
                 it.requestMatchers(
                     "/api/auth/**",
+                    "/api/market/**",
                     "/oauth2/**",
                     "/login/**",
+                    "/ws-connect/**",
+                    "/topic/**",
                     "/actuator/health"
                 ).permitAll()
                 it.anyRequest().authenticated()
