@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { useMarketTickers } from '../hooks/useMarketTickers';
 import { useTickerSubscription } from '../hooks/useTickerSubscription';
 import { useTickerStore, type Ticker } from '../store/tickerStore';
@@ -25,6 +26,7 @@ function getCoinSymbol(market: string): string {
 }
 
 function TickerRow({ ticker }: { ticker: Ticker }) {
+  const navigate = useNavigate();
   const prevPriceRef = useRef<number>(ticker.tradePrice);
   const [flash, setFlash] = useState<'up' | 'down' | null>(null);
 
@@ -53,6 +55,7 @@ function TickerRow({ ticker }: { ticker: Ticker }) {
 
   return (
     <motion.div
+      onClick={() => navigate(`/coin/${ticker.market}`)}
       className={`flex items-center px-4 py-3 border-b border-zinc-800 transition-colors duration-300 ${flashBg} hover:bg-zinc-800/50 cursor-pointer`}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
