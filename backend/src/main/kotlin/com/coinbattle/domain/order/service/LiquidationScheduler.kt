@@ -7,6 +7,7 @@ import com.coinbattle.domain.order.repository.PositionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -37,7 +38,7 @@ class LiquidationScheduler(
 
     @PreDestroy
     fun stop() {
-        scope.coroutineContext[SupervisorJob()]?.cancel()
+        scope.cancel()
     }
 
     private fun checkLiquidations() {
