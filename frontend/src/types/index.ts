@@ -73,3 +73,31 @@ export interface SellOrderResponse {
   status: 'FILLED' | 'PARTIALLY_FILLED';
   createdAt: string;
 }
+
+export interface CandleRaw {
+  market: string;
+  candleDateTimeUtc: string;
+  candleDateTimeKst: string;
+  openingPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  tradePrice: number;
+  candleAccTradeVolume: number;
+  timestamp: number;
+}
+
+export interface CandleData {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+}
+
+export type CandleUnit = 1 | 3 | 5 | 10 | 15 | 30 | 60 | 240;
+
+export interface CandleResponse {
+  market: string;
+  unit: number;
+  candles: CandleRaw[];
+}

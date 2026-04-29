@@ -14,13 +14,24 @@ const COLORS = {
   badgeEven: 'bg-zinc-800 text-zinc-400',
   tabActive: 'text-white border-b-2 border-orange-500',
   tabInactive: 'text-zinc-500 border-b-2 border-transparent hover:text-zinc-300',
+  chartTabActive: 'text-white border-b-2 border-orange-500',
+  chartTabInactive: 'text-zinc-500 border-b-2 border-transparent hover:text-zinc-300',
 } as const;
+
+const CANDLE_UNITS = [
+  { value: 1, label: '1분' },
+  { value: 3, label: '3분' },
+  { value: 5, label: '5분' },
+  { value: 15, label: '15분' },
+  { value: 60, label: '60분' },
+  { value: 240, label: '240분' },
+] as const;
 
 // ============================================================================
 // END CUSTOMIZATION
 // ============================================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft } from 'lucide-react';
@@ -28,6 +39,9 @@ import { useTickerStore } from '../store/tickerStore';
 import { useTickerSubscription } from '../hooks/useTickerSubscription';
 import { OrderPanel } from '../components/OrderPanel';
 import { PortfolioWidget } from '../components/PortfolioWidget';
+import { CandleChart } from '../components/CandleChart';
+import { api } from '../lib/api';
+import type { CandleData, CandleUnit, CandleResponse, ApiResponse } from '../types';
 
 type MobileTab = 'order' | 'position';
 
@@ -44,10 +58,26 @@ function getCoinSymbol(market: string): string {
   return market.replace('KRW-', '');
 }
 
+function toUnixSeconds(utcString: string): number {
+  return Math.floor(new Date(utcString).getTime() / 1000);
+}
+
+function ChartSkeleton({ height }: { height: number }) {
+  return (
+    <div
+      className="w-full animate-pulse rounded bg-zinc-800"
+      style={{ height }}
+    />
+  );
+}
+
 export function CoinDetailPage() {
   const { ticker = '' } = useParams<{ ticker: string }>();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<MobileTab>('order');
+  const [candleUnit, setCandleUnit] = useState<CandleUnit>(1);
+  const [candles, setCandles] = useState<CandleData[]>([]);
+  const [candlesLoading, setCandlesLoading] = useState(false);
 
   const tickers = useTickerStore((s) => s.tickers);
   const tickerData = tickers.get(ticker);
@@ -56,6 +86,41 @@ export function CoinDetailPage() {
   const change = tickerData?.change ?? 'EVEN';
 
   useTickerSubscription([ticker]);
+
+  useEffect(() => {
+    if (!ticker) return;
+
+    let cancelled = false;
+    setCandlesLoading(true);
+
+    api
+      .get<ApiResponse<CandleResponse>>(`/api/market/${ticker}/candles`, {
+        params: { unit: candleUnit, count: 200 },
+      })
+      .then((res) => {
+        if (cancelled) return;
+        const raw = res.data.data.candles;
+        setCandles(
+          raw.map((c) => ({
+            time: toUnixSeconds(c.candleDateTimeUtc),
+            open: c.openingPrice,
+            high: c.highPrice,
+            low: c.lowPrice,
+            close: c.tradePrice,
+          }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setCandles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCandlesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker, candleUnit]);
 
   const priceColor =
     change === 'RISE' ? COLORS.priceRise : change === 'FALL' ? COLORS.priceFall : COLORS.priceEven;
@@ -101,6 +166,47 @@ export function CoinDetailPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-4">
+        <motion.div
+          className="mb-4"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex gap-1 border-b border-zinc-800 mb-0">
+            {CANDLE_UNITS.map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => setCandleUnit(value as CandleUnit)}
+                className={`px-3 py-2 text-xs font-semibold transition-colors ${
+                  candleUnit === value ? COLORS.chartTabActive : COLORS.chartTabInactive
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-b-xl overflow-hidden">
+            {candlesLoading ? (
+              <>
+                <ChartSkeleton height={360} />
+                <div className="md:hidden">
+                  <ChartSkeleton height={220} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="hidden md:block">
+                  <CandleChart candles={candles} height={360} />
+                </div>
+                <div className="md:hidden">
+                  <CandleChart candles={candles} height={220} />
+                </div>
+              </>
+            )}
+          </div>
+        </motion.div>
+
         <div className="hidden md:grid md:grid-cols-5 gap-4">
           <div className="md:col-span-3">
             <PortfolioWidget />
