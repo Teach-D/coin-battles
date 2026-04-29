@@ -20,4 +20,15 @@ class AsyncConfig {
         executor.initialize()
         return executor
     }
+
+    @Bean(name = ["rankingExecutor"])
+    fun rankingExecutor(): Executor {
+        val executor = ThreadPoolTaskExecutor()
+        executor.corePoolSize = 2
+        executor.maxPoolSize = 4
+        executor.queueCapacity = 200
+        executor.setThreadNamePrefix("ranking-")
+        executor.initialize()
+        return executor
+    }
 }
