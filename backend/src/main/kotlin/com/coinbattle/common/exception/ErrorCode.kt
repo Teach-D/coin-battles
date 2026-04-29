@@ -18,4 +18,6 @@ enum class ErrorCode(val status: Int, val message: String) {
     POSITION_NOT_FOUND(404, "포지션을 찾을 수 없습니다"),
     POSITION_NOT_OWNED(403, "본인의 포지션이 아닙니다"),
     POSITION_ALREADY_CLOSED(409, "이미 청산된 포지션입니다"),
+    INVALID_CANDLE_UNIT(400, "유효하지 않은 분봉 단위입니다. 허용값: 1, 3, 5, 10, 15, 30, 60, 240"),
+    CANDLE_DATA_UNAVAILABLE(503, "캔들 데이터를 가져올 수 없습니다"),
 }

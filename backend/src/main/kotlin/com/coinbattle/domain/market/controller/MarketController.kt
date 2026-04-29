@@ -1,8 +1,10 @@
 package com.coinbattle.domain.market.controller
 
 import com.coinbattle.common.dto.ApiResponse
+import com.coinbattle.domain.market.dto.response.CandleListResponse
 import com.coinbattle.domain.market.dto.response.TickerListResponse
 import com.coinbattle.domain.market.dto.response.TickerResponse
+import com.coinbattle.domain.market.service.CandleService
 import com.coinbattle.domain.market.service.MarketService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -14,7 +16,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/market")
 class MarketController(
-    private val marketService: MarketService
+    private val marketService: MarketService,
+    private val candleService: CandleService
 ) {
 
     @GetMapping("/tickers")
@@ -30,4 +33,12 @@ class MarketController(
         @PathVariable market: String
     ): ResponseEntity<ApiResponse<TickerResponse>> =
         ResponseEntity.ok(ApiResponse.ok(marketService.getTicker(market)))
+
+    @GetMapping("/{market}/candles")
+    suspend fun getCandles(
+        @PathVariable market: String,
+        @RequestParam(defaultValue = "1") unit: Int,
+        @RequestParam(defaultValue = "200") count: Int
+    ): ResponseEntity<ApiResponse<CandleListResponse>> =
+        ResponseEntity.ok(ApiResponse.ok(candleService.getCandles(market, unit, count)))
 }
