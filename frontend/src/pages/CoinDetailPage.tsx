@@ -43,6 +43,11 @@ import { CandleChart } from '../components/CandleChart';
 import { api } from '../lib/api';
 import type { CandleData, CandleUnit, CandleResponse, ApiResponse } from '../types';
 
+function getPagesForUnit(unit: CandleUnit): number {
+  if (unit === 5 || unit === 15) return 5;
+  return 10;
+}
+
 type MobileTab = 'order' | 'position';
 
 function formatPrice(price: number): string {
@@ -59,7 +64,7 @@ function getCoinSymbol(market: string): string {
 }
 
 function toUnixSeconds(utcString: string): number {
-  return Math.floor(new Date(utcString).getTime() / 1000);
+  return Math.floor(new Date(utcString + 'Z').getTime() / 1000);
 }
 
 function ChartSkeleton({ height }: { height: number }) {
@@ -95,7 +100,7 @@ export function CoinDetailPage() {
 
     api
       .get<ApiResponse<CandleResponse>>(`/api/market/${ticker}/candles`, {
-        params: { unit: candleUnit, count: 200 },
+        params: { unit: candleUnit, count: 200, pages: getPagesForUnit(candleUnit) },
       })
       .then((res) => {
         if (cancelled) return;

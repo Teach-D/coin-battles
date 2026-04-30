@@ -38,7 +38,8 @@ class MarketController(
     suspend fun getCandles(
         @PathVariable market: String,
         @RequestParam(defaultValue = "1") unit: Int,
-        @RequestParam(defaultValue = "200") count: Int
+        @RequestParam(defaultValue = "200") count: Int,
+        @RequestParam(defaultValue = "1") pages: Int
     ): ResponseEntity<ApiResponse<CandleListResponse>> =
-        ResponseEntity.ok(ApiResponse.ok(candleService.getCandles(market, unit, count)))
+        ResponseEntity.ok(ApiResponse.ok(candleService.getCandles(market, unit, count, pages)))
 }

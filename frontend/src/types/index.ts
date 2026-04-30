@@ -100,4 +100,5 @@ export interface CandleResponse {
   market: string;
   unit: number;
   candles: CandleRaw[];
+  totalCount: number;
 }

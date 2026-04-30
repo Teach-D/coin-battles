@@ -18,7 +18,8 @@ data class CandleResponse(
 data class CandleListResponse(
     val market: String,
     val unit: Int,
-    val candles: List<CandleResponse>
+    val candles: List<CandleResponse>,
+    val totalCount: Int
 )
 
 enum class CandleUnit(val minutes: Int) {

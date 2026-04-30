@@ -23,8 +23,19 @@ import {
   type IChartApi,
   type ISeriesApi,
   type UTCTimestamp,
+  type MouseEventParams,
 } from 'lightweight-charts';
 import type { CandleData } from '../types';
+
+function formatUTC(ts: number): string {
+  const d = new Date(ts * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const mi = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
+}
 
 interface CandleChartProps {
   candles: CandleData[];
@@ -35,6 +46,7 @@ export function CandleChart({ candles, height = 360 }: CandleChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const timeLabelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -54,6 +66,7 @@ export function CandleChart({ candles, height = 360 }: CandleChartProps) {
         vertLine: {
           color: CHART_COLORS.crosshairLine,
           labelBackgroundColor: CHART_COLORS.crosshairLabel,
+          labelVisible: false,
         },
         horzLine: {
           color: CHART_COLORS.crosshairLine,
@@ -81,6 +94,22 @@ export function CandleChart({ candles, height = 360 }: CandleChartProps) {
 
     chartRef.current = chart;
     seriesRef.current = series;
+
+    chart.subscribeCrosshairMove((param: MouseEventParams) => {
+      const el = timeLabelRef.current;
+      const container = containerRef.current;
+      if (!el || !container) return;
+      if (!param.time || !param.point) {
+        el.style.display = 'none';
+        return;
+      }
+      const containerWidth = container.clientWidth;
+      const halfWidth = 55;
+      const x = Math.max(halfWidth, Math.min(param.point.x, containerWidth - halfWidth));
+      el.textContent = formatUTC(param.time as number);
+      el.style.left = `${x}px`;
+      el.style.display = 'block';
+    });
 
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -115,5 +144,25 @@ export function CandleChart({ candles, height = 360 }: CandleChartProps) {
     chartRef.current?.timeScale().fitContent();
   }, [candles]);
 
-  return <div ref={containerRef} style={{ height }} className="w-full" />;
+  return (
+    <div ref={containerRef} style={{ height }} className="w-full relative">
+      <div
+        ref={timeLabelRef}
+        style={{
+          display: 'none',
+          position: 'absolute',
+          bottom: 2,
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+          pointerEvents: 'none',
+          fontSize: 11,
+          color: '#ffffff',
+          backgroundColor: CHART_COLORS.crosshairLabel,
+          padding: '2px 5px',
+          borderRadius: 2,
+          whiteSpace: 'nowrap',
+        }}
+      />
+    </div>
+  );
 }

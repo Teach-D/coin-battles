@@ -6,6 +6,7 @@ import com.coinbattle.domain.market.dto.response.CandleListResponse
 import com.coinbattle.domain.market.dto.response.CandleResponse
 import com.coinbattle.domain.market.dto.response.CandleUnit
 import com.fasterxml.jackson.annotation.JsonProperty
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
@@ -15,29 +16,53 @@ import org.springframework.web.reactive.function.client.bodyToMono
 class CandleService(
     private val webClient: WebClient
 ) {
-    suspend fun getCandles(market: String, unit: Int, count: Int): CandleListResponse {
+    suspend fun getCandles(market: String, unit: Int, count: Int, pages: Int = 1): CandleListResponse {
         val candleUnit = runCatching { CandleUnit.from(unit) }
             .getOrElse { throw CoinBattleException(ErrorCode.INVALID_CANDLE_UNIT) }
 
         val clampedCount = count.coerceIn(1, 200)
+        val clampedPages = pages.coerceIn(1, 10)
 
-        val upbitCandles = webClient.get()
+        val allCandles = mutableListOf<UpbitCandleDto>()
+        var toParam: String? = null
+
+        repeat(clampedPages) { pageIndex ->
+            if (pageIndex > 0) delay(100)
+
+            val page = fetchPage(candleUnit, market, clampedCount, toParam)
+
+            if (page.isEmpty()) return@repeat
+
+            allCandles.addAll(page)
+            toParam = page.minByOrNull { it.timestamp }?.candleDateTimeUtc
+        }
+
+        val sorted = allCandles.sortedBy { it.timestamp }
+
+        return CandleListResponse(
+            market = market,
+            unit = candleUnit.minutes,
+            candles = sorted.map { it.toCandleResponse() },
+            totalCount = sorted.size
+        )
+    }
+
+    private suspend fun fetchPage(
+        candleUnit: CandleUnit,
+        market: String,
+        count: Int,
+        to: String?
+    ): List<UpbitCandleDto> =
+        webClient.get()
             .uri("https://api.upbit.com/v1/candles/minutes/${candleUnit.minutes}") { builder ->
-                builder
-                    .queryParam("market", market)
-                    .queryParam("count", clampedCount)
+                builder.queryParam("market", market)
+                    .queryParam("count", count)
+                    .apply { if (to != null) queryParam("to", to) }
                     .build()
             }
             .retrieve()
             .bodyToMono<List<UpbitCandleDto>>()
             .awaitSingle()
-
-        return CandleListResponse(
-            market = market,
-            unit = candleUnit.minutes,
-            candles = upbitCandles.map { it.toCandleResponse() }
-        )
-    }
 
     private data class UpbitCandleDto(
         @JsonProperty("market") val market: String,
