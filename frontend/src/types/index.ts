@@ -102,3 +102,22 @@ export interface CandleResponse {
   candles: CandleRaw[];
   totalCount: number;
 }
+
+export interface RankingEntry {
+  rank: number;
+  userId: number;
+  nickname: string;
+  evaluatedValue: number;
+}
+
+export interface MyRankingSlot {
+  rank: number | null;
+  evaluatedValue: number;
+}
+
+export interface MyRanking {
+  userId: number;
+  nickname: string;
+  season: MyRankingSlot;
+  daily: MyRankingSlot;
+}
