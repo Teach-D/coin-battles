@@ -45,6 +45,8 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/api/auth/**",
                     "/api/market/**",
+                    "/api/ranking/season",
+                    "/api/ranking/daily",
                     "/oauth2/**",
                     "/login/**",
                     "/ws-connect/**",
