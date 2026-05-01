@@ -207,8 +207,8 @@ export interface BattleRankingEntry {
   rank: number;
   userId: number;
   nickname: string;
-  returnRate: number;
-  currentValuation: number;
+  returnRate: number | null;
+  currentValuation: number | null;
 }
 
 export interface BattleStompMessage {

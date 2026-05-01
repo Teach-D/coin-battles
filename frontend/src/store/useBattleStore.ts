@@ -36,15 +36,15 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   fetchBattles: async (status = 'WAITING') => {
     const response = await api.get('/api/battles', { params: { status, page: 0, size: 20 } });
-    set({ battles: response.data.content });
+    set({ battles: response.data.data?.content ?? [] });
   },
 
   fetchBattle: async (battleId) => {
     const response = await api.get(`/api/battles/${battleId}`);
-    const battle: BattleDetail = response.data;
+    const battle: BattleDetail = response.data.data;
     set({
       currentBattle: battle,
-      rankings: battle.participants.map((p, i) => ({
+      rankings: (battle.participants ?? []).map((p, i) => ({
         rank: i + 1,
         userId: p.userId,
         nickname: p.nickname,
@@ -56,14 +56,14 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   createBattle: async (req) => {
     const response = await api.post('/api/battles', req);
-    const created = response.data;
+    const created = response.data.data;
     set((state) => ({ battles: [created, ...state.battles] }));
     return created.battleId as string;
   },
 
   joinBattle: async (battleId) => {
     const response = await api.post(`/api/battles/${battleId}/join`);
-    const joined = response.data;
+    const joined = response.data.data;
     set((state) => ({
       currentBattle: state.currentBattle
         ? {
@@ -78,7 +78,7 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   enterMatchQueue: async (req) => {
     const response = await api.post('/api/battles/match', req);
-    set({ matchingStatus: 'queued', queueKey: response.data.queueKey });
+    set({ matchingStatus: 'queued', queueKey: response.data.data?.queueKey });
   },
 
   cancelMatchQueue: async () => {

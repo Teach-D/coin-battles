@@ -12,7 +12,8 @@ function formatMoney(amount: number): string {
   return amount.toLocaleString('ko-KR');
 }
 
-function formatReturnRate(rate: number): string {
+function formatReturnRate(rate: number | null): string {
+  if (rate == null) return '0.00%';
   const sign = rate > 0 ? '+' : '';
   return `${sign}${rate.toFixed(2)}%`;
 }
@@ -51,7 +52,7 @@ function useCountdown(endTime: string | null): string {
 
 function RankingRow({ entry, index }: { entry: BattleRankingEntry; index: number }) {
   const meta = getRankMeta(entry.rank);
-  const isPositive = entry.returnRate >= 0;
+  const isPositive = (entry.returnRate ?? 0) >= 0;
 
   return (
     <motion.div
@@ -72,7 +73,7 @@ function RankingRow({ entry, index }: { entry: BattleRankingEntry; index: number
           {formatReturnRate(entry.returnRate)}
         </p>
         <p className="text-xs text-zinc-600 font-mono">
-          {formatMoney(entry.currentValuation)}원
+          {entry.currentValuation != null ? `${formatMoney(entry.currentValuation)}원` : '-'}
         </p>
       </div>
     </motion.div>

@@ -437,7 +437,7 @@ function MatchQueueModal({ onClose }: { onClose: () => void }) {
 
 export function BattlePage() {
   const navigate = useNavigate();
-  const { battles, fetchBattles } = useBattleStore();
+  const { battles = [], fetchBattles } = useBattleStore();
   const [tab, setTab] = useState<TabStatus>('WAITING');
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
