@@ -20,4 +20,13 @@ enum class ErrorCode(val status: Int, val message: String) {
     POSITION_ALREADY_CLOSED(409, "이미 청산된 포지션입니다"),
     INVALID_CANDLE_UNIT(400, "유효하지 않은 분봉 단위입니다. 허용값: 1, 3, 5, 10, 15, 30, 60, 240"),
     CANDLE_DATA_UNAVAILABLE(503, "캔들 데이터를 가져올 수 없습니다"),
+    INVALID_SEED_MONEY(400, "시드머니는 10,000원 이상 10,000,000원 이하여야 합니다"),
+    INVALID_DURATION(400, "배틀 시간은 10, 30, 60분 중 하나여야 합니다"),
+    INVALID_MAX_PARTICIPANTS(400, "최대 참가자 수는 2, 3, 5명 중 하나여야 합니다"),
+    ALREADY_IN_BATTLE(409, "이미 진행 중인 배틀이 있습니다"),
+    BATTLE_NOT_FOUND(404, "배틀을 찾을 수 없습니다"),
+    BATTLE_ALREADY_STARTED(409, "이미 시작된 배틀입니다"),
+    BATTLE_FULL(409, "배틀 참가자가 가득 찼습니다"),
+    BATTLE_LOCK_TIMEOUT(423, "배틀 처리 중입니다. 잠시 후 다시 시도해주세요"),
+    NOT_IN_MATCH_QUEUE(404, "매칭 큐에 등록되지 않은 상태입니다"),
 }
