@@ -20,7 +20,8 @@
       "mcp__github__issue_read",
       "mcp__github__create_pull_request",
       "mcp__github__merge_pull_request",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "Bash(git add *)"
     ]
   }
 }
