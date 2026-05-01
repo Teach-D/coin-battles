@@ -121,3 +121,110 @@ export interface MyRanking {
   season: MyRankingSlot;
   daily: MyRankingSlot;
 }
+
+export type BattleStatus = 'WAITING' | 'IN_PROGRESS' | 'FINISHED';
+
+export interface BattleListItem {
+  battleId: string;
+  status: BattleStatus;
+  leverage: number;
+  seedMoney: number;
+  duration: number;
+  maxParticipants: number;
+  currentParticipants: number;
+  createdAt: string;
+}
+
+export interface BattleParticipant {
+  userId: number;
+  nickname: string;
+  seedPriceSnapshot: number | null;
+  currentValuation: number;
+  returnRate: number;
+}
+
+export interface BattleDetail {
+  battleId: string;
+  status: BattleStatus;
+  leverage: number;
+  seedMoney: number;
+  duration: number;
+  maxParticipants: number;
+  startTime: string | null;
+  endTime: string | null;
+  participants: BattleParticipant[];
+  winnerId: number | null;
+}
+
+export interface BattleListResponse {
+  content: BattleListItem[];
+  totalElements: number;
+  totalPages: number;
+  page: number;
+  size: number;
+}
+
+export interface CreateBattleRequest {
+  leverage: number;
+  seedMoney: number;
+  duration: number;
+  maxParticipants: number;
+}
+
+export interface CreateBattleResponse {
+  battleId: string;
+  status: BattleStatus;
+  hostUserId: number;
+  leverage: number;
+  seedMoney: number;
+  duration: number;
+  maxParticipants: number;
+  currentParticipants: number;
+  createdAt: string;
+}
+
+export interface JoinBattleResponse {
+  battleId: string;
+  status: BattleStatus;
+  currentParticipants: number;
+  maxParticipants: number;
+  startTime: string;
+}
+
+export interface MatchBattleRequest {
+  leverage: number;
+  seedMoney: number;
+  duration: number;
+  maxParticipants: number;
+}
+
+export interface MatchQueueResponse {
+  queueKey: string;
+  estimatedWaitSeconds: number;
+}
+
+export interface BattleRankingEntry {
+  rank: number;
+  userId: number;
+  nickname: string;
+  returnRate: number;
+  currentValuation: number;
+}
+
+export interface BattleStompMessage {
+  type: 'PARTICIPANT_JOINED' | 'BATTLE_STARTED' | 'RANK_UPDATE' | 'BATTLE_FINISHED';
+  battleId: string;
+  data: {
+    userId: number | null;
+    currentParticipants: number;
+    rankings: BattleRankingEntry[];
+    winnerId: number | null;
+  };
+  timestamp: string;
+}
+
+export interface MatchNotification {
+  battleId: string;
+  status: BattleStatus;
+  participants: Array<{ userId: number; nickname: string }>;
+}
