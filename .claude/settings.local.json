@@ -21,7 +21,42 @@
       "mcp__github__create_pull_request",
       "mcp__github__merge_pull_request",
       "Bash(git pull *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(git stash *)",
+      "Bash(node \"C:\\\\Users\\\\wkadh\\\\.claude\\\\plugins\\\\cache\\\\claude-plugins-official\\\\session-report\\\\unknown\\\\skills\\\\session-report\\\\analyze-sessions.mjs\" --json --since 24h)",
+      "Bash(echo \"Exit: $?\")",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(uv *)",
+      "PowerShell(powershell -ExecutionPolicy ByPass -c \"irm https://astral.sh/uv/install.ps1 | iex\")",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(Get-ChildItem *)",
+      "mcp__plugin_serena_serena__initial_instructions",
+      "mcp__plugin_serena_serena__check_onboarding_performed",
+      "mcp__plugin_serena_serena__onboarding",
+      "mcp__plugin_serena_serena__find_symbol",
+      "mcp__github__list_branches",
+      "mcp__github__list_issues",
+      "Bash(git branch *)",
+      "Bash(git clean *)",
+      "Skill(update-config)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\wkadh\\\\OneDrive\\\\바탕 화면\\\\coding\\\\project\\\\coin-battle\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json,os;d=json.load(sys.stdin);p=d.get('file_path','');pn=p.replace(chr(92),'/');skip=['Config','Application','Constants','ErrorCode','Exception','Event','Dto','Request','Response','Command','Migration'];bn=pn.split('/')[-1];impl='src/main/kotlin' in pn and pn.endswith('.kt') and not any(x in bn for x in skip);tp=pn.replace('src/main/kotlin','src/test/kotlin').replace('.kt','Test.kt') if impl else None;missing=impl and not(os.path.exists(tp) if tp else True);print('TDD 강제: '+str(tp)+' 테스트 파일을 먼저 작성하세요 (Phase 1→2 완료 후 구현 단계 진행)') if missing else None;sys.exit(2 if missing else 0)\""
+          }
+        ]
+      }
     ]
   }
 }

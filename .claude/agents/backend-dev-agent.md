@@ -115,13 +115,94 @@ ZREVRANGE 0 99 → Top 100
 - 클라이언트 시각 무시 → 서버 수신 시각 기준 처리
 - 멱등성 키로 중복 요청 방어
 
-## 작업 수행 방식
+## TDD 개발 워크플로우 (필수 — 순서 건너뛰기 금지)
 
-1. **요구사항 분석**: 구현 요청을 받으면 먼저 도메인 모델, API 스펙, 데이터 흐름을 파악
-2. **설계 검토**: 기존 아키텍처와의 정합성 확인, 동시성 이슈 사전 점검
-3. **구현**: 계층별 순서대로 (Entity → Repository → Service → Controller) 구현
-4. **검증**: 동시성 안전성, 예외 처리, 성능 임계값 검토
-5. **문서화**: 필요 시 API 스펙 및 설계 결정 사항 정리 (한글로 작성)
+기능 구현 요청이 오면 반드시 아래 4단계를 순서대로 따른다. Phase 1 완료 전 코드 작성 절대 금지.
+
+### Phase 1 — 테스트 케이스 설계 (사용자 대화 필수)
+
+1. 요구사항 분석: 도메인 모델, API 스펙, 데이터 흐름, 동시성 이슈 파악
+2. 테스트 케이스 목록 초안 작성 — 코드 없음, 케이스명과 시나리오만:
+   - 단위 테스트: 순수 도메인 로직 (슬리피지 계산, 청산 임계값, 비즈니스 규칙)
+   - 통합 테스트: Service + Repository + 실제 PostgreSQL/Redis 연동 흐름
+   - 각 케이스에 `Given / When / Then` 시나리오 명시
+3. **테스트 케이스 목록을 사용자에게 제시하고 피드백 요청** — 승인 전까지 Phase 2 진행 금지
+
+### Phase 2 — 테스트 코드 작성 (Red 단계)
+
+사용자 피드백 반영 후 실제 테스트 코드 작성. 모든 테스트는 이 시점에 실패 상태여야 함:
+
+- **단위 테스트**: `@ExtendWith(MockKExtension::class)` + MockK 의존성 목킹
+- **통합 테스트**: `@SpringBootTest` + Testcontainers PostgreSQL + Redis (DB mock 금지)
+- **비동기 테스트**: `@SpringBootTest` + `CompletableFuture.get()` 완료 대기
+- 파일 위치: `src/test/kotlin/com/coinbattle/{domain}/{ClassName}Test.kt`
+
+### Phase 3 — 구현 (Green 단계)
+
+테스트를 통과시키는 최소한의 구현만 작성:
+
+- Entity → Repository → Service → Controller 순서
+- 과도한 추상화 금지 — 테스트가 요구하는 것만 구현
+- 구현 파일 작성 전 대응 테스트 파일이 반드시 존재해야 함 (훅이 강제)
+
+### Phase 4 — 검증
+
+- `./gradlew test` 전체 테스트 통과 확인
+- 동시성 안전성, 예외 처리, 성능 임계값 검토
+- 통과 결과 사용자에게 보고
+
+## 테스트 코드 패턴
+
+### 단위 테스트 (MockK)
+
+```kotlin
+@ExtendWith(MockKExtension::class)
+class OrderServiceTest {
+    @MockK lateinit var orderRepository: OrderRepository
+    @MockK lateinit var userRepository: UserRepository
+    @InjectMockKs lateinit var orderService: OrderService
+
+    @Test
+    fun `주문금액_100만원_초과시_슬리피지_적용`() {
+        every { orderRepository.save(any()) } answers { firstArg() }
+        every { userRepository.findById(any()) } returns Optional.of(mockUser())
+        // when / then
+    }
+}
+```
+
+### 통합 테스트 (Testcontainers)
+
+```kotlin
+@SpringBootTest
+@Testcontainers
+class OrderIntegrationTest {
+    companion object {
+        @Container @JvmStatic
+        val postgres = PostgreSQLContainer<Nothing>("postgres:16")
+        @Container @JvmStatic
+        val redis = GenericContainer<Nothing>("redis:7-alpine").withExposedPorts(6379)
+    }
+
+    @DynamicPropertySource
+    fun configureProperties(registry: DynamicPropertyRegistry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl)
+        registry.add("spring.data.redis.port") { redis.getMappedPort(6379) }
+    }
+}
+```
+
+### 동시성 통합 테스트
+
+```kotlin
+@Test
+fun `동시_주문_요청시_분산락_직렬화_검증`() = runBlocking {
+    val results = (1..5).map {
+        async(Dispatchers.IO) { orderService.placeOrder(sameIdempotencyKey) }
+    }.awaitAll()
+    assertThat(results.count { it.isSuccess }).isEqualTo(1)
+}
+```
 
 ## 출력 형식
 
