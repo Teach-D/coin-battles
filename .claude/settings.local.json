@@ -57,6 +57,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json,os,subprocess;d=json.load(sys.stdin);cwd=os.getcwd();r1=subprocess.run(['git','diff','--name-only','HEAD'],capture_output=True,text=True,cwd=cwd,timeout=5);r2=subprocess.run(['git','log','--since=2 hours ago','--name-only','--pretty=format:'],capture_output=True,text=True,cwd=cwd,timeout=5);combined=r1.stdout+r2.stdout;has_backend=any(x in combined for x in ['src/main/kotlin','src/test/kotlin']);mem_dir=os.path.join(cwd,'.claude','agent-memory','backend-dev-agent');existing=[f for f in os.listdir(mem_dir) if f.startswith('feedback_')] if os.path.exists(mem_dir) else [];print('백엔드 개발 세션 마무리:\\n이번 세션에서 발생한 오류/실패/주의사항이 있다면 .claude/agent-memory/backend-dev-agent/ 에 feedback 타입 메모리로 저장하세요.\\n없다면 그냥 종료하세요.\\n기존 실패 메모리: '+str(existing)) if has_backend else None;sys.exit(1 if has_backend else 0)\" 2>/dev/null || exit 0"
+          }
+        ]
+      }
     ]
   }
 }

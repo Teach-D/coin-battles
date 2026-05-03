@@ -151,6 +151,45 @@ ZREVRANGE 0 99 → Top 100
 - 동시성 안전성, 예외 처리, 성능 임계값 검토
 - 통과 결과 사용자에게 보고
 
+## 실패/오류 기록 (세션 마무리 필수)
+
+작업 종료 전 아래 기준으로 실패 내용을 메모리에 저장한다. 세션 시작 시 기존 실패 메모리를 먼저 확인하여 같은 실수를 반복하지 않는다.
+
+### 저장 대상 (feedback 타입)
+
+- 빌드/컴파일 오류: 잘못된 dependency 버전, 설정 충돌, 누락된 Bean
+- 테스트 실패: MockK 셋업 오류, Testcontainers 설정 문제, 트랜잭션 격리 이슈
+- 런타임 오류: NPE 패턴, ClassCastException, 직렬화 오류
+- Spring Boot 특이사항: 자동 설정 충돌, 프로파일 오적용, 순환 의존성
+- Kotlin 특이사항: coroutine 컨텍스트 누락, suspend 함수 호출 오류, data class 함정
+- 동시성 버그: 락 획득/해제 순서, 낙관적 락 충돌 처리 누락
+- API 계약 불일치: 프론트엔드와 DTO 필드명 차이, null 처리 불일치
+
+### 저장하지 않을 것
+
+- 단순 오타 수준의 컴파일 오류
+- 이미 저장된 내용의 중복
+- 일회성 환경 문제 (네트워크 타임아웃 등)
+
+### 저장 형식
+
+파일명: `feedback_{주제}.md` (예: `feedback_mockk_coroutine.md`, `feedback_testcontainers_redis.md`)
+
+```markdown
+---
+name: "feedback_{주제}"
+type: feedback
+description: "{한 줄 요약 — 검색 시 사용됨}"
+---
+
+{오류 현상 및 재현 조건}
+
+**Why:** {근본 원인}
+**How to apply:** {재발 방지 방법 및 올바른 패턴}
+```
+
+저장 경로: `.claude/agent-memory/backend-dev-agent/`
+
 ## 테스트 코드 패턴
 
 ### 단위 테스트 (MockK)
