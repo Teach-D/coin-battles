@@ -29,4 +29,6 @@ enum class ErrorCode(val status: Int, val message: String) {
     BATTLE_FULL(409, "배틀 참가자가 가득 찼습니다"),
     BATTLE_LOCK_TIMEOUT(423, "배틀 처리 중입니다. 잠시 후 다시 시도해주세요"),
     NOT_IN_MATCH_QUEUE(404, "매칭 큐에 등록되지 않은 상태입니다"),
+    BATTLE_NOT_FINISHED(409, "배틀이 아직 종료되지 않았습니다"),
+    BATTLE_ACCESS_DENIED(403, "배틀 참가자만 결과를 조회할 수 있습니다"),
 }

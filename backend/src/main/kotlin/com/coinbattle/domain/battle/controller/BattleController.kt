@@ -5,9 +5,11 @@ import com.coinbattle.domain.battle.dto.request.CreateBattleRequest
 import com.coinbattle.domain.battle.dto.request.MatchBattleRequest
 import com.coinbattle.domain.battle.dto.response.BattleListResponse
 import com.coinbattle.domain.battle.dto.response.BattleResponse
+import com.coinbattle.domain.battle.dto.response.BattleResultResponse
 import com.coinbattle.domain.battle.dto.response.JoinBattleResponse
 import com.coinbattle.domain.battle.dto.response.MatchQueueResponse
 import com.coinbattle.domain.battle.enum.BattleStatus
+import com.coinbattle.domain.battle.service.BattleEndService
 import com.coinbattle.domain.battle.service.BattleMatchingService
 import com.coinbattle.domain.battle.service.BattleService
 import com.coinbattle.domain.user.entity.CoinBattlePrincipal
@@ -29,7 +31,8 @@ import java.util.UUID
 @RequestMapping("/api/battles")
 class BattleController(
     private val battleService: BattleService,
-    private val battleMatchingService: BattleMatchingService
+    private val battleMatchingService: BattleMatchingService,
+    private val battleEndService: BattleEndService
 ) {
     @PostMapping
     fun createBattle(
@@ -82,5 +85,14 @@ class BattleController(
     ): ResponseEntity<Void> {
         battleMatchingService.leaveMatchQueue(principal.user.id)
         return ResponseEntity.noContent().build()
+    }
+
+    @GetMapping("/{battleId}/result")
+    fun getBattleResult(
+        @AuthenticationPrincipal principal: CoinBattlePrincipal,
+        @PathVariable battleId: UUID
+    ): ResponseEntity<ApiResponse<BattleResultResponse>> {
+        val result = battleEndService.getBattleResult(battleId, principal.user.id)
+        return ResponseEntity.ok(ApiResponse.ok(result))
     }
 }
