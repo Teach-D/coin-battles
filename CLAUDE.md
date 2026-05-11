@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-이 파일은 Claude Code가 이 저장소에서 작업할 때 참고하는 가이드입니다.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 프로젝트 개요
 
@@ -16,26 +16,38 @@
 - 원격 저장소: https://github.com/Teach-D/coin-battle.git
 - 작성자: 김동현 (Backend Engineer)
 
-## 프로젝트 상태
+## 로컬 개발 환경
 
-현재 초기 설정 단계 — 소스 파일, 빌드 시스템, 의존성 미설정.
-스캐폴딩 완료 후 아래 섹션을 채울 것:
-- 빌드/린트/테스트 명령어
-- 로컬 실행 방법
+```bash
+# 인프라 (PostgreSQL + Redis) 시작
+docker-compose up -d
+
+# 백엔드
+cd backend
+./gradlew bootRun --args='--spring.profiles.active=local'
+
+# 프론트엔드
+cd frontend
+npm run dev
+```
+
+환경변수:
+- `backend/.env` — DB/Redis 연결, JWT 시크릿, OAuth2 클라이언트 설정
+- `frontend/.env` — `VITE_API_URL`, `VITE_WS_URL`
 
 ## 기술 스택
 
-| 영역 | 기술                                                   |
-|------|------------------------------------------------------|
+| 영역 | 기술 |
+|------|------|
 | 프론트엔드 | React 18 (Vite), TailwindCSS, Recharts, Zustand, TanStack Query |
-| 모바일 | React 웹뷰 (PWA + 앱 래핑), FCM 푸시                           |
-| 백엔드 | Spring Boot 3.x + Kotlin Coroutine                   |
-| 실시간 통신 | Spring WebSocket + STOMP, Redis Pub/Sub              |
-| 데이터베이스 | PostgreSQL (월별 Range 파티셔닝, 커버링 인덱스), Redis 7.x       |
-| 비동기 처리 | Spring ApplicationEventPublisher + @Async (MVP 단계)   |
+| 모바일 | React 웹뷰 (PWA + 앱 래핑), FCM 푸시 |
+| 백엔드 | Spring Boot 3.x + Kotlin Coroutine |
+| 실시간 통신 | Spring WebSocket + STOMP, Redis Pub/Sub |
+| 데이터베이스 | PostgreSQL (월별 Range 파티셔닝, 커버링 인덱스), Redis 7.x |
+| 비동기 처리 | Spring ApplicationEventPublisher + @Async (MVP 단계) |
 | 외부 시세 | 업비트 WebSocket (원화 200개+), 바이낸스 WebSocket (글로벌 800개+) |
-| 배포 | Oracle Cloud Free Tier + Docker + GitHub Actions     |
-| 모니터링 | Prometheus + Grafana                                 |
+| 배포 | Oracle Cloud Free Tier + Docker + GitHub Actions |
+| 모니터링 | Prometheus + Grafana |
 
 ## MVP 핵심 기능 5가지
 
@@ -52,7 +64,7 @@
 업비트/바이낸스 WebSocket
   → Spring Client
   → Redis Hash 캐싱 (TTL 3초)
-  → Redis Pub/Sub
+  → Redis Pub/Sub (TickerPubSubPublisher → TickerPubSubSubscriber)
   → 모든 서버 인스턴스
   → STOMP /topic/coin/{ticker}
   → 유저
@@ -64,8 +76,9 @@
   → Redisson 분산 락 (user:{id}:order, TTL 3초)
   → 잔고 검증
   → DB 트랜잭션 + 낙관적 락 (@Version)
-  → Spring ApplicationEvent 발행
-  → @Async 팬아웃: 체결기록 저장 / 랭킹 갱신 / 알림 / 카드 생성
+  → Spring ApplicationEvent 발행 (OrderFilledEvent)
+  → @TransactionalEventListener(AFTER_COMMIT) + @Async 팬아웃:
+      체결기록 저장 / 랭킹 갱신 / 알림 / 카드 생성
 ```
 
 ### 결과 카드 생성
@@ -80,7 +93,7 @@
 ### 기타 비동기 처리
 - **알림 발송**: Redis Pub/Sub → WebSocket / FCM
 - **펀딩비 정산**: `@Scheduled` (8시간 주기) + `@Async` 배치 실행
-- **강제청산 모니터링**: Kotlin Coroutine Scheduler (1초 주기)
+- **강제청산 모니터링**: Kotlin Coroutine Scheduler (1초 주기) — `LiquidationScheduler`
 
 ## 동시성 3단계 방어
 
@@ -96,9 +109,8 @@
 ```
 청산 기준 손실률 = -(1 / 레버리지) × 0.9
 
-2x  →  -45%   /   3x  →  -30%   /   5x  →  -18%   /   10x  →  -9%
+2x → -45%  /  3x → -30%  /  5x → -18%  /  10x → -9%
 ```
-10배 레버리지 시 -9% 하락만으로 청산 → 실전 선물 거래소 경험 제공
 
 ### 슬리피지 시뮬레이션
 | 주문 금액 | 체결가 보정 |
@@ -107,31 +119,27 @@
 | 100만 ~ 500만원 | ±0.05% |
 | 500만원 ~ 전액 | ±0.1~0.3% (랜덤) |
 
-### 펀딩비
-- 주기: 8시간 (00:00 / 08:00 / 16:00 UTC)
-- Spring Scheduler + @Async → 전체 오픈 포지션 일괄 정산
-
 ### PVP 공정성
 - 체결 시각 = **서버 수신 시각** 기준 (클라이언트 시각 무시)
 - 매칭 시 Redis에 모든 참가자의 기준가 스냅샷 고정
 
 ### 랭킹 (Redis Sorted Set)
 ```
-ZADD leaderboard:season {평가금액} {userId}   # 시즌 전체
-ZADD leaderboard:daily  {평가금액} {userId}   # 데일리 (자정 초기화)
+ZADD leaderboard:season {평가금액} {userId}
+ZADD leaderboard:daily  {평가금액} {userId}   # 자정 초기화
 ZREVRANK  → O(log n) 본인 순위
 ZREVRANGE 0 99 → Top 100
 ```
 
 ## 코딩 규칙
 
-- 코드 작성 시 주석을 달지 않는다.
+- 주석 없음 — 코드로 의도 표현
 
 ## 개발 가이드
 
 각 영역별 상세 개발 가이드는 하위 디렉토리 CLAUDE.md 참조:
 - `backend/CLAUDE.md` — Gradle 빌드/테스트 명령어, 패키지 구조, 구현 패턴
-- `frontend/CLAUDE.md` — (스캐폴딩 후 작성)
+- `frontend/CLAUDE.md` — Vite 명령어, 컴포넌트/훅 패턴, 상태 관리
 
 현재 Phase: **Phase 1** (회원/인증, 업비트 시세, 매수/매도, 레버리지+숏, 기본 랭킹)
 
@@ -141,13 +149,12 @@ ZREVRANGE 0 99 → Top 100
 - **VM 2** (Redis + PostgreSQL): 2 OCPU, 12GB RAM
 - Nginx 리버스 프록시 + Let's Encrypt SSL
 - Blue-Green 무중단 배포
-- WebSocket 끊김 → Corout-+
-- 업비트 장애 → 빗썸 REST API -+r)
+- 업비트 장애 → Resilience4j Circuit Breaker → 빗썸 REST API 자동 전환
 
 ## 외부 API
 
-| API | 용도              | 비용 |
-|-----|-----------------|------|
-| 업비트 WebSocket | 원화 마켓-+PI 키 불필요 |
-| 바이낸스 WebSocket | 글로벌 -+I 키 불필요   |
-| 빗썸 REST API | 업비트 장애 -+        
+| API | 용도 | 비용 |
+|-----|------|------|
+| 업비트 WebSocket | 원화 마켓 실시간 시세 | API 키 불필요 |
+| 바이낸스 WebSocket | 글로벌 마켓 실시간 시세 | API 키 불필요 |
+| 빗썸 REST API | 업비트 장애 시 폴백 | 공개 API |

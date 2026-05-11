@@ -19,50 +19,82 @@
 
 ```
 src/main/kotlin/com/coinbattle/
-├── CoinBattleApplication.kt
+├── CoinbattleApplication.kt
 ├── common/
 │   ├── config/
 │   │   ├── AsyncConfig.kt
+│   │   ├── EncryptionConfig.kt
+│   │   ├── JwtAuthenticationFilter.kt
 │   │   ├── RedisConfig.kt
 │   │   ├── SecurityConfig.kt
+│   │   ├── WebClientConfig.kt
 │   │   └── WebSocketConfig.kt
+│   ├── dto/ApiResponse.kt
 │   ├── exception/
 │   │   ├── CoinBattleException.kt
 │   │   ├── ErrorCode.kt
 │   │   └── GlobalExceptionHandler.kt
 │   └── util/
+│       ├── AesEncryptor.kt
 │       └── JwtProvider.kt
 └── domain/
     ├── user/
-    │   ├── entity/User.kt              # @Version 낙관적 락, balance 10,000,000 초기값
+    │   ├── entity/
+    │   │   ├── User.kt                    # @Version 낙관적 락, balance 10,000,000 초기값
+    │   │   ├── CoinBattlePrincipal.kt
+    │   │   └── EmailEncryptConverter.kt
     │   ├── repository/UserRepository.kt
-    │   ├── service/UserService.kt
+    │   ├── service/
+    │   │   ├── UserService.kt
+    │   │   ├── OAuth2UserService.kt
+    │   │   └── OAuth2LoginSuccessHandler.kt
     │   └── controller/AuthController.kt
     ├── market/
     │   ├── client/UpbitWebSocketClient.kt
-    │   ├── client/BinanceWebSocketClient.kt
-    │   ├── service/MarketService.kt
+    │   ├── repository/TickerRedisRepository.kt
+    │   ├── service/
+    │   │   ├── MarketService.kt
+    │   │   ├── CandleService.kt
+    │   │   ├── TickerPubSubPublisher.kt
+    │   │   └── TickerPubSubSubscriber.kt
     │   └── controller/MarketController.kt
     ├── order/
-    │   ├── entity/Order.kt             # idempotencyKey (UNIQUE), executedPrice 포함
-    │   ├── entity/Position.kt          # @Version, liquidationThreshold() 내장
-    │   ├── repository/OrderRepository.kt
-    │   ├── repository/PositionRepository.kt
-    │   ├── service/OrderService.kt
+    │   ├── entity/
+    │   │   ├── Order.kt                   # idempotencyKey (UNIQUE), executedPrice 포함
+    │   │   └── Position.kt                # @Version, liquidationThreshold() 내장
+    │   ├── event/
+    │   │   ├── OrderFilledEvent.kt
+    │   │   └── OrderFilledEventListener.kt
+    │   ├── repository/
+    │   │   ├── OrderRepository.kt
+    │   │   └── PositionRepository.kt
+    │   ├── service/
+    │   │   ├── OrderService.kt
+    │   │   └── LiquidationScheduler.kt    # Coroutine 1초 주기 청산 모니터링
     │   └── controller/OrderController.kt
     ├── battle/
-    │   ├── entity/Battle.kt            # BattleStatus: WAITING/IN_PROGRESS/FINISHED
-    │   ├── repository/BattleRepository.kt
-    │   ├── service/BattleService.kt
+    │   ├── entity/
+    │   │   ├── Battle.kt
+    │   │   └── BattleSession.kt
+    │   ├── enum/BattleStatus.kt           # WAITING/IN_PROGRESS/FINISHED
+    │   ├── event/BattleCreatedEvent.kt
+    │   ├── repository/
+    │   │   ├── BattleRepository.kt
+    │   │   └── BattleSessionRepository.kt
+    │   ├── service/
+    │   │   ├── BattleService.kt
+    │   │   └── BattleMatchingService.kt   # 랜덤 매칭 큐 처리
     │   └── controller/BattleController.kt
-    ├── ranking/
-    │   ├── service/RankingService.kt
-    │   └── controller/RankingController.kt
-    ├── card/
-    │   └── service/CardService.kt
-    └── notification/
-        └── service/NotificationService.kt
+    └── ranking/
+        ├── scheduler/RankingScheduler.kt
+        ├── service/RankingService.kt
+        └── controller/RankingController.kt
 ```
+
+DB 마이그레이션 파일 (`resources/db/migration/`):
+- `V1__init_schema.sql` — users 테이블
+- `V2__order_position_schema.sql` — orders, positions 테이블 + 커버링 인덱스
+- `V3__battle_schema.sql` — battles, battle_sessions 테이블
 
 ## 클래스명 규칙
 
@@ -85,12 +117,6 @@ src/main/kotlin/com/coinbattle/
 | 유틸 | `{Domain}{기능}` | `SlippageCalculator`, `JwtProvider` |
 
 Service 인터페이스 없음: 구현체가 하나인 경우 클래스 직접 사용.
-
-## DB 마이그레이션
-
-`resources/db/migration/V1__init_schema.sql`
-- users, battles, positions, orders 테이블
-- 커버링 인덱스: idx_positions_user_ticker_status, idx_orders_user_created 등
 
 ## Redis 키 네이밍 규칙
 

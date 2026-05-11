@@ -16,6 +16,8 @@ data class OrderResponse(
     val side: OrderSide,
     val requestedAmount: Long?,
     val executedPrice: Long?,
+    val marketPrice: Long? = null,
+    val slippageRate: BigDecimal? = null,
     val executedAmount: Long?,
     val executedQuantity: BigDecimal?,
     val leverage: Int,

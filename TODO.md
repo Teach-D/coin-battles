@@ -35,6 +35,26 @@
 
 ### Backend — 펀딩비 정산 구현
 
-- [ ] `FundingRateScheduler.kt` 생성 — `@Scheduled(cron = "0 0 0,8,16 * * *")` + `@Async` 8시간 주기
-- [ ] 오픈 LONG/SHORT 포지션에 펀딩비 부과 로직 구현 (바이낸스 펀딩비 기준 적용)
-- [ ] 정산 실패 시 로깅 후 계속 진행 (부분 실패 허용)
+- [x] `FundingRateScheduler.kt` 생성 — `@Scheduled(cron = "0 0 0,8,16 * * *")` + `@Async` 8시간 주기
+- [x] 오픈 LONG/SHORT 포지션에 펀딩비 부과 로직 구현 (바이낸스 펀딩비 기준 적용)
+- [x] 정산 실패 시 로깅 후 계속 진행 (부분 실패 허용)
+
+### Backend — 슬리피지 시뮬레이션
+
+- [x] `OrderService.kt` 주문 금액별 슬리피지 보정 로직 구현 (100만 이하: 없음 / 100만~500만: ±0.05% / 500만~전액: ±0.1~0.3% 랜덤)
+- [x] `OrderResponse.kt`에 `executedPrice` 필드 추가 — 슬리피지 적용 체결가 반환
+
+### Backend — 강제청산 WebSocket 알림
+
+- [x] `LiquidationScheduler.kt` 청산 실행 직후 STOMP `/user/{userId}/queue/notification` 에 청산 알림 메시지 발송 추가
+- [x] `LiquidationNotificationMessage.kt` DTO 생성 — `ticker`, `liquidatedAt`, `lossAmount` 필드
+
+### Frontend — 포트폴리오 페이지
+
+- [x] `PortfolioPage.tsx` 생성 — 잔고, 오픈 포지션 목록, 평가금액, 거래 내역 표시 (`usePortfolio` 훅 활용)
+- [x] `App.tsx` `/portfolio` 라우트에 `PortfolioPage` 연결 (현재 빈 `<div>` 대체)
+
+### Frontend — 배틀 결과 공유 페이지
+
+- [x] `BattleResultPage.tsx` 생성 — `/result/:battleId` 라우트, `BattleResultCard.tsx` 재사용 + `GET /api/battles/{battleId}/result` 호출
+- [x] `App.tsx` `/result/:battleId` 라우트에 `BattleResultPage` 연결 (현재 빈 `<div>` 대체)
