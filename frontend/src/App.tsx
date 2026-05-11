@@ -7,6 +7,8 @@ import { CoinDetailPage } from './pages/CoinDetailPage';
 import { RankingPage } from './pages/RankingPage';
 import { BattlePage } from './pages/BattlePage';
 import { BattleRoom } from './pages/BattleRoom';
+import { PortfolioPage } from './pages/PortfolioPage';
+import { BattleResultPage } from './pages/BattleResultPage';
 
 function App() {
   return (
@@ -19,8 +21,8 @@ function App() {
       <Route path="/battles/:battleId" element={<AuthGuard><BattleRoom /></AuthGuard>} />
       <Route path="/battle" element={<AuthGuard><BattlePage /></AuthGuard>} />
       <Route path="/ranking" element={<AuthGuard><RankingPage /></AuthGuard>} />
-      <Route path="/result/:battleId" element={<AuthGuard><div>ResultCard</div></AuthGuard>} />
-      <Route path="/portfolio" element={<AuthGuard><div>Portfolio</div></AuthGuard>} />
+      <Route path="/result/:battleId" element={<AuthGuard><BattleResultPage /></AuthGuard>} />
+      <Route path="/portfolio" element={<AuthGuard><PortfolioPage /></AuthGuard>} />
     </Routes>
   );
 }

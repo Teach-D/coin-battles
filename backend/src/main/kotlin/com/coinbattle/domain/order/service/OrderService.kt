@@ -89,7 +89,8 @@ class OrderService(
         }
 
         val currentPrice = resolvePrice(request.ticker, request.orderType, request.limitPrice)
-        val executedPrice = applySlippage(currentPrice, request.amount, isBuyEntry(request.direction))
+        val slippage = applySlippage(currentPrice, request.amount, isBuyEntry(request.direction))
+        val executedPrice = slippage.executedPrice
         val margin = request.amount
         val notionalValue = BigDecimal(margin).multiply(BigDecimal(request.leverage))
         val executedQuantity = notionalValue
@@ -133,7 +134,7 @@ class OrderService(
         val evaluatedValue = resolvePortfolioEvaluatedValue(userId, user.balance, currentPrice, position)
         eventPublisher.publishEvent(OrderFilledEvent(order.id, userId, request.ticker, evaluatedValue))
 
-        return OrderResponse.from(order)
+        return OrderResponse.from(order).copy(marketPrice = currentPrice, slippageRate = slippage.slippageRate)
     }
 
     @Transactional
@@ -155,7 +156,8 @@ class OrderService(
 
         val closeRatioBd = request.closeRatio.setScale(BD_SCALE, BD_ROUNDING)
         val currentPrice = resolvePrice(position.ticker, OrderType.MARKET, null)
-        val executedPrice = applySlippage(currentPrice, position.margin, isSellEntry(position.direction))
+        val slippage = applySlippage(currentPrice, position.margin, isSellEntry(position.direction))
+        val executedPrice = slippage.executedPrice
 
         val closeQuantity = position.quantity
             .multiply(closeRatioBd)
@@ -214,7 +216,7 @@ class OrderService(
         val evaluatedValue = resolvePortfolioEvaluatedValue(userId, user.balance, currentPrice, position)
         eventPublisher.publishEvent(OrderFilledEvent(order.id, userId, position.ticker, evaluatedValue))
 
-        return OrderResponse.from(order)
+        return OrderResponse.from(order).copy(marketPrice = currentPrice, slippageRate = slippage.slippageRate)
     }
 
     @Transactional
@@ -344,8 +346,10 @@ class OrderService(
             ?: throw CoinBattleException(ErrorCode.TICKER_NOT_FOUND)
     }
 
-    private fun applySlippage(basePrice: Long, amount: Long, isAdverseHigh: Boolean): Long {
-        val slippageRate = when {
+    private data class SlippageResult(val executedPrice: Long, val slippageRate: BigDecimal)
+
+    private fun applySlippage(basePrice: Long, amount: Long, isAdverseHigh: Boolean): SlippageResult {
+        val rate = when {
             amount <= 1_000_000L -> BigDecimal.ZERO
             amount <= 5_000_000L -> BigDecimal("0.0005")
             else -> {
@@ -354,17 +358,16 @@ class OrderService(
             }
         }
 
-        if (slippageRate.compareTo(BigDecimal.ZERO) == 0) return basePrice
+        if (rate.compareTo(BigDecimal.ZERO) == 0) return SlippageResult(basePrice, BigDecimal.ZERO)
 
-        val adjustment = BigDecimal(basePrice)
-            .multiply(slippageRate)
-            .setScale(BD_SCALE, BD_ROUNDING)
-
-        return if (isAdverseHigh) {
+        val adjustment = BigDecimal(basePrice).multiply(rate).setScale(BD_SCALE, BD_ROUNDING)
+        val executedPrice = if (isAdverseHigh) {
             BigDecimal(basePrice).add(adjustment).setScale(0, BD_ROUNDING).toLong()
         } else {
             BigDecimal(basePrice).subtract(adjustment).setScale(0, BD_ROUNDING).toLong()
         }
+        val signedRate = if (isAdverseHigh) rate else rate.negate()
+        return SlippageResult(executedPrice, signedRate)
     }
 
     private fun isBuyEntry(direction: OrderDirection): Boolean = direction == OrderDirection.LONG
