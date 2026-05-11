@@ -4,7 +4,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { StompSubscription } from '@stomp/stompjs';
 import { connectStomp, getStompClient } from '../lib/stomp';
 import { useBattleStore } from '../store/useBattleStore';
+import { useAuthStore } from '../store/authStore';
+import { useBattleResult } from '../hooks/useBattleResult';
+import { BattleResultCard } from '../components/BattleResultCard';
 import type { BattleRankingEntry, BattleStompMessage } from '../types';
+
+function parseUserIdFromToken(token: string | null): number {
+  if (!token) return 0;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return Number(payload.sub ?? payload.userId ?? payload.id ?? 0);
+  } catch {
+    return 0;
+  }
+}
 
 function formatMoney(amount: number): string {
   if (amount >= 1_000_000) return `${(amount / 1_000_000).toFixed(1)}백만`;
@@ -250,9 +263,11 @@ function InProgressView({
 function FinishedView({
   rankings,
   winnerId,
+  onShowResultCard,
 }: {
   rankings: BattleRankingEntry[];
   winnerId: number | null;
+  onShowResultCard: () => void;
 }) {
   const navigate = useNavigate();
   const winner = rankings.find((r) => r.userId === winnerId) ?? rankings[0];
@@ -304,6 +319,15 @@ function FinishedView({
         ))}
       </div>
 
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onShowResultCard}
+        className="w-full rounded-2xl bg-orange-500 py-3.5 text-sm font-bold text-white hover:bg-orange-400 transition-colors"
+      >
+        결과 카드 보기
+      </motion.button>
+
       <button
         onClick={() => navigate('/battles')}
         className="w-full rounded-2xl border border-zinc-700 py-3.5 text-sm font-semibold text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors"
@@ -318,9 +342,17 @@ export function BattleRoom() {
   const { battleId } = useParams<{ battleId: string }>();
   const navigate = useNavigate();
   const { currentBattle, rankings, fetchBattle, updateRankings, setBattleStatus } = useBattleStore();
+  const { accessToken } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [showResultCard, setShowResultCard] = useState(false);
   const subRef = useRef<StompSubscription | null>(null);
+
+  const currentUserId = parseUserIdFromToken(accessToken);
+  const { data: battleResult } = useBattleResult(
+    battleId,
+    showResultCard || currentBattle?.status === 'FINISHED'
+  );
 
   useEffect(() => {
     if (!battleId) return;
@@ -352,6 +384,7 @@ export function BattleRoom() {
           if (message.type === 'BATTLE_FINISHED') {
             setBattleStatus('FINISHED');
             fetchBattle(battleId);
+            setShowResultCard(true);
           }
           if (message.type === 'PARTICIPANT_JOINED') {
             fetchBattle(battleId);
@@ -460,10 +493,19 @@ export function BattleRoom() {
               key="finished"
               rankings={rankings}
               winnerId={currentBattle.winnerId}
+              onShowResultCard={() => setShowResultCard(true)}
             />
           )}
         </AnimatePresence>
       </main>
+
+      {showResultCard && battleResult && (
+        <BattleResultCard
+          result={battleResult}
+          currentUserId={currentUserId}
+          onClose={() => setShowResultCard(false)}
+        />
+      )}
     </div>
   );
 }

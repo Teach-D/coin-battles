@@ -228,3 +228,23 @@ export interface MatchNotification {
   status: BattleStatus;
   participants: Array<{ userId: number; nickname: string }>;
 }
+
+export interface ParticipantResultResponse {
+  userId: number;
+  nickname: string;
+  rank: number;
+  isWinner: boolean;
+  initialSeed: number;
+  finalValuation: number;
+  profitAmount: number;
+  profitRate: number;
+}
+
+export interface BattleResultResponse {
+  battleId: string;
+  status: string;
+  durationMinutes: number;
+  endedAt: string | null;
+  participants: ParticipantResultResponse[];
+  myResult: ParticipantResultResponse | null;
+}
