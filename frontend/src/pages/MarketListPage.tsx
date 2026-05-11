@@ -5,8 +5,16 @@ import { useMarketTickers } from '../hooks/useMarketTickers';
 import { useTickerSubscription } from '../hooks/useTickerSubscription';
 import { useTickerStore, type Ticker } from '../store/tickerStore';
 
-function formatPrice(price: number): string {
-  return price.toLocaleString('ko-KR');
+type ExchangeFilter = 'ALL' | 'UPBIT' | 'BINANCE';
+
+function formatPrice(market: string, price: number): string {
+  if (market.startsWith('USDT-')) {
+    if (price >= 1) {
+      return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `$${price.toFixed(6)}`;
+  }
+  return `₩${price.toLocaleString('ko-KR')}`;
 }
 
 function formatRate(rate: number): string {
@@ -14,7 +22,12 @@ function formatRate(rate: number): string {
   return `${sign}${(rate * 100).toFixed(2)}%`;
 }
 
-function formatVolume(volume: number): string {
+function formatVolume(market: string, volume: number): string {
+  if (market.startsWith('USDT-')) {
+    if (volume >= 1_000_000_000) return `$${(volume / 1_000_000_000).toFixed(1)}B`;
+    if (volume >= 1_000_000) return `$${(volume / 1_000_000).toFixed(1)}M`;
+    return `$${volume.toLocaleString('en-US')}`;
+  }
   if (volume >= 1_000_000_000_000) return `${(volume / 1_000_000_000_000).toFixed(0)}조`;
   if (volume >= 100_000_000) return `${(volume / 100_000_000).toFixed(0)}억`;
   if (volume >= 10_000) return `${(volume / 10_000).toFixed(0)}만`;
@@ -22,7 +35,7 @@ function formatVolume(volume: number): string {
 }
 
 function getCoinSymbol(market: string): string {
-  return market.replace('KRW-', '');
+  return market.split('-')[1] ?? market;
 }
 
 function TickerRow({ ticker }: { ticker: Ticker }) {
@@ -53,6 +66,8 @@ function TickerRow({ ticker }: { ticker: Ticker }) {
       ? 'bg-red-500/10'
       : '';
 
+  const isUsdt = ticker.market.startsWith('USDT-');
+
   return (
     <motion.div
       onClick={() => navigate(`/coin/${ticker.market}`)}
@@ -65,16 +80,21 @@ function TickerRow({ ticker }: { ticker: Ticker }) {
         <div className="flex items-center gap-2">
           <span className="font-bold text-white text-sm">{getCoinSymbol(ticker.market)}</span>
           <span className="text-xs text-zinc-600">{ticker.market}</span>
+          {isUsdt && (
+            <span className="text-[10px] bg-yellow-500/15 text-yellow-400 px-1.5 py-0.5 rounded font-medium">
+              USDT
+            </span>
+          )}
         </div>
       </div>
       <div className={`text-right w-36 font-mono font-semibold text-sm ${changeColor}`}>
-        ₩{formatPrice(ticker.tradePrice)}
+        {formatPrice(ticker.market, ticker.tradePrice)}
       </div>
       <div className={`text-right w-24 font-mono text-sm ${changeColor}`}>
         {formatRate(ticker.changeRate)}
       </div>
       <div className="text-right w-28 text-zinc-500 font-mono text-xs hidden sm:block">
-        {formatVolume(ticker.accTradePrice24h)}
+        {formatVolume(ticker.market, ticker.accTradePrice24h)}
       </div>
     </motion.div>
   );
@@ -96,24 +116,40 @@ function SkeletonRow() {
 
 const PAGE_SIZE = 20;
 
+const EXCHANGE_TABS: { value: ExchangeFilter; label: string; badge: string | null }[] = [
+  { value: 'ALL', label: '전체', badge: null },
+  { value: 'UPBIT', label: '업비트', badge: 'KRW' },
+  { value: 'BINANCE', label: '바이낸스', badge: 'USDT' },
+];
+
 export function MarketListPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [exchangeFilter, setExchangeFilter] = useState<ExchangeFilter>('ALL');
   const { isLoading, isError, refetch } = useMarketTickers();
   const tickers = useTickerStore((s) => s.tickers);
-  const markets = Array.from(tickers.keys());
 
-  useTickerSubscription(markets);
+  const filtered = Array.from(tickers.values())
+    .filter((t) => {
+      if (exchangeFilter === 'UPBIT') return t.market.startsWith('KRW-');
+      if (exchangeFilter === 'BINANCE') return t.market.startsWith('USDT-');
+      return true;
+    })
+    .filter((t) => getCoinSymbol(t.market).toLowerCase().includes(search.toLowerCase()));
 
-  const filtered = Array.from(tickers.values()).filter((t) =>
-    getCoinSymbol(t.market).toLowerCase().includes(search.toLowerCase())
-  );
   const sorted = [...filtered].sort((a, b) => b.accTradePrice24h - a.accTradePrice24h);
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  useTickerSubscription(paginated.map((t) => t.market));
+
   const handleSearch = (value: string) => {
     setSearch(value);
+    setPage(1);
+  };
+
+  const handleExchangeFilter = (value: ExchangeFilter) => {
+    setExchangeFilter(value);
     setPage(1);
   };
 
@@ -134,7 +170,39 @@ export function MarketListPage() {
       </header>
 
       <main className="max-w-2xl mx-auto">
-        <div className="px-4 py-3">
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex items-center gap-1.5">
+            {EXCHANGE_TABS.map((tab) => (
+              <motion.button
+                key={tab.value}
+                onClick={() => handleExchangeFilter(tab.value)}
+                whileTap={{ scale: 0.96 }}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  exchangeFilter === tab.value
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                }`}
+              >
+                {tab.label}
+                {tab.badge && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                      exchangeFilter === tab.value
+                        ? 'bg-white/20 text-white'
+                        : tab.value === 'BINANCE'
+                        ? 'bg-yellow-500/15 text-yellow-400'
+                        : 'bg-[#2DD4BF]/15 text-[#2DD4BF]'
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        <div className="px-4 pb-3">
           <input
             type="text"
             placeholder="코인 검색..."
@@ -182,6 +250,12 @@ export function MarketListPage() {
         {!isLoading && !isError && sorted.length === 0 && search && (
           <p className="text-center py-20 text-zinc-600 text-sm">
             "{search}"에 대한 결과가 없습니다
+          </p>
+        )}
+
+        {!isLoading && !isError && sorted.length === 0 && !search && exchangeFilter !== 'ALL' && (
+          <p className="text-center py-20 text-zinc-600 text-sm">
+            {exchangeFilter === 'UPBIT' ? '업비트' : '바이낸스'} 마켓 시세를 불러오는 중입니다
           </p>
         )}
 

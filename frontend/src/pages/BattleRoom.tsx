@@ -294,14 +294,14 @@ function FinishedView({
           <div className="flex items-center gap-4">
             <div className="text-center">
               <p className="text-xs text-zinc-500 mb-0.5">수익률</p>
-              <p className={`text-xl font-bold font-mono ${winner.returnRate >= 0 ? 'text-[#2DD4BF]' : 'text-red-400'}`}>
+              <p className={`text-xl font-bold font-mono ${(winner.returnRate ?? 0) >= 0 ? 'text-[#2DD4BF]' : 'text-red-400'}`}>
                 {formatReturnRate(winner.returnRate)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-zinc-500 mb-0.5">최종 평가</p>
               <p className="text-sm font-semibold text-white font-mono">
-                {formatMoney(winner.currentValuation)}원
+                {formatMoney(winner.currentValuation ?? 0)}원
               </p>
             </div>
           </div>
