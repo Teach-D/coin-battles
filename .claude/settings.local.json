@@ -43,8 +43,14 @@
       "Skill(update-config)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\wkadh\\\\OneDrive\\\\바탕 화면\\\\coding\\\\project\\\\coin-battle\" -Recurse -Directory)",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(Sort-Object)"
-    ]
+      "Bash(Sort-Object)",
+      "Bash(dir \"C:\\\\Users\\\\wkadh\\\\OneDrive\\\\바탕 화면\\\\coding\\\\project\\\\coin-battle\")",
+      "Bash(./gradlew test *)",
+      "Bash(npm run *)",
+      "Bash(Select-Object -First 30)",
+      "Bash(./gradlew compileKotlin)"
+    ],
+    "defaultMode": "plan"
   },
   "hooks": {
     "PreToolUse": [
