@@ -16,4 +16,6 @@ interface PositionRepository : JpaRepository<Position, Long> {
         status: PositionStatus
     ): Position?
     fun findAllByStatus(status: PositionStatus): List<Position>
+
+    fun findAllByUserIdInAndStatus(userIds: List<Long>, status: PositionStatus): List<Position>
 }

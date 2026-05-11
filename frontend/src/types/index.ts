@@ -217,7 +217,7 @@ export interface BattleStompMessage {
   data: {
     userId: number | null;
     currentParticipants: number;
-    rankings: BattleRankingEntry[];
+    rankings?: BattleRankingEntry[];
     winnerId: number | null;
   };
   timestamp: string;

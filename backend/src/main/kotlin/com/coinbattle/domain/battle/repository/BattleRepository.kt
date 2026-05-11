@@ -47,4 +47,6 @@ interface BattleRepository : JpaRepository<Battle, UUID> {
         @Param("status") status: BattleStatus,
         @Param("expiredBefore") expiredBefore: Instant
     ): List<Battle>
+
+    fun findAllByStatus(status: BattleStatus): List<Battle>
 }

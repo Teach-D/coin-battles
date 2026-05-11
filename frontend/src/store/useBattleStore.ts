@@ -90,11 +90,6 @@ export const useBattleStore = create<BattleStore>((set, get) => ({
 
   updateRankings: (rankings) => {
     set({ rankings });
-    set((state) => ({
-      currentBattle: state.currentBattle
-        ? { ...state.currentBattle }
-        : state.currentBattle,
-    }));
   },
 
   setBattleStatus: (status) => {
