@@ -21,4 +21,10 @@ class BattleSession {
     @CreationTimestamp
     @Column(name = "joined_at", updatable = false)
     var joinedAt: Instant = Instant.now()
+
+    @Column(name = "final_valuation")
+    var finalValuation: Long? = null
+
+    @Column(name = "rank")
+    var rank: Int? = null
 }

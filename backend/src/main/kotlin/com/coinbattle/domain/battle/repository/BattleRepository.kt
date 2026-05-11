@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import java.time.Instant
 import java.util.*
 
 interface BattleRepository : JpaRepository<Battle, UUID> {
@@ -40,4 +41,10 @@ interface BattleRepository : JpaRepository<Battle, UUID> {
         @Param("maxParticipants") maxParticipants: Int,
         pageable: Pageable
     ): Page<Battle>
+
+    @Query("SELECT b FROM Battle b WHERE b.status = :status AND b.startTime IS NOT NULL AND b.startTime <= :expiredBefore")
+    fun findExpiredBattles(
+        @Param("status") status: BattleStatus,
+        @Param("expiredBefore") expiredBefore: Instant
+    ): List<Battle>
 }
