@@ -9,6 +9,7 @@ import { BattlePage } from './pages/BattlePage';
 import { BattleRoom } from './pages/BattleRoom';
 import { PortfolioPage } from './pages/PortfolioPage';
 import { BattleResultPage } from './pages/BattleResultPage';
+import { ProfilePage } from './pages/ProfilePage';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
       <Route path="/ranking" element={<AuthGuard><RankingPage /></AuthGuard>} />
       <Route path="/result/:battleId" element={<AuthGuard><BattleResultPage /></AuthGuard>} />
       <Route path="/portfolio" element={<AuthGuard><PortfolioPage /></AuthGuard>} />
+      <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
     </Routes>
   );
 }

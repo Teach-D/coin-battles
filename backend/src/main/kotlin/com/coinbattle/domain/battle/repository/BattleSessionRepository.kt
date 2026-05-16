@@ -46,4 +46,48 @@ interface BattleSessionRepository : JpaRepository<BattleSession, UUID> {
         @Param("participantId") participantId: Long,
         @Param("activeStatuses") activeStatuses: List<BattleStatus>
     ): Boolean
+
+    @Query("""
+        SELECT COUNT(bs) FROM BattleSession bs
+        WHERE bs.participantId = :userId
+        AND bs.battleId IN (
+            SELECT b.battleId FROM Battle b
+            WHERE b.status = com.coinbattle.domain.battle.enum.BattleStatus.FINISHED
+            AND b.winnerId = :userId
+        )
+    """)
+    fun countWins(@Param("userId") userId: Long): Long
+
+    @Query("""
+        SELECT COUNT(bs) FROM BattleSession bs
+        WHERE bs.participantId = :userId
+        AND bs.battleId IN (
+            SELECT b.battleId FROM Battle b
+            WHERE b.status = com.coinbattle.domain.battle.enum.BattleStatus.FINISHED
+            AND b.winnerId IS NOT NULL
+            AND b.winnerId <> :userId
+        )
+    """)
+    fun countLosses(@Param("userId") userId: Long): Long
+
+    @Query("""
+        SELECT COUNT(bs) FROM BattleSession bs
+        WHERE bs.participantId = :userId
+        AND bs.battleId IN (
+            SELECT b.battleId FROM Battle b
+            WHERE b.status = com.coinbattle.domain.battle.enum.BattleStatus.FINISHED
+            AND b.winnerId IS NULL
+        )
+    """)
+    fun countDraws(@Param("userId") userId: Long): Long
+
+    @Query("""
+        SELECT MAX((bs.finalValuation - b.seedMoney) * 100.0 / b.seedMoney)
+        FROM BattleSession bs, Battle b
+        WHERE bs.battleId = b.battleId
+        AND bs.participantId = :userId
+        AND b.status = com.coinbattle.domain.battle.enum.BattleStatus.FINISHED
+        AND bs.finalValuation IS NOT NULL
+    """)
+    fun findBestReturnRate(@Param("userId") userId: Long): Double?
 }
