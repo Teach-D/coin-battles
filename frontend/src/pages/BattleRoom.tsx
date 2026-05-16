@@ -7,7 +7,7 @@ import { useBattleStore } from '../store/useBattleStore';
 import { useAuthStore } from '../store/authStore';
 import { useBattleResult } from '../hooks/useBattleResult';
 import { BattleResultCard } from '../components/BattleResultCard';
-import type { BattleRankingEntry, BattleStompMessage } from '../types';
+import type { BattleRankingEntry, BattleStompMessage, CardReadyNotification } from '../types';
 
 function parseUserIdFromToken(token: string | null): number {
   if (!token) return 0;
@@ -346,7 +346,9 @@ export function BattleRoom() {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [showResultCard, setShowResultCard] = useState(false);
+  const [cardImageUrl, setCardImageUrl] = useState<string | null>(null);
   const subRef = useRef<StompSubscription | null>(null);
+  const notifSubRef = useRef<StompSubscription | null>(null);
 
   const currentUserId = parseUserIdFromToken(accessToken);
   const { data: battleResult } = useBattleResult(
@@ -399,6 +401,32 @@ export function BattleRoom() {
       mounted = false;
       subRef.current?.unsubscribe();
       subRef.current = null;
+    };
+  }, [battleId]);
+
+  useEffect(() => {
+    if (!battleId) return;
+    let mounted = true;
+
+    connectStomp().then(() => {
+      if (!mounted) return;
+      const client = getStompClient();
+      notifSubRef.current = client.subscribe('/user/queue/notification', (msg) => {
+        try {
+          const notification: CardReadyNotification = JSON.parse(msg.body);
+          if (notification.type === 'CARD_READY' && notification.battleId === battleId) {
+            setCardImageUrl(notification.cardImageUrl);
+          }
+        } catch {
+          // ignore malformed frames
+        }
+      });
+    });
+
+    return () => {
+      mounted = false;
+      notifSubRef.current?.unsubscribe();
+      notifSubRef.current = null;
     };
   }, [battleId]);
 
@@ -503,6 +531,7 @@ export function BattleRoom() {
         <BattleResultCard
           result={battleResult}
           currentUserId={currentUserId}
+          cardImageUrl={cardImageUrl ?? undefined}
           onClose={() => setShowResultCard(false)}
         />
       )}

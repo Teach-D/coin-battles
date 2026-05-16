@@ -16,9 +16,11 @@ import com.coinbattle.domain.order.repository.PositionRepository
 import com.coinbattle.domain.user.entity.AuthProvider
 import com.coinbattle.domain.user.entity.User
 import com.coinbattle.domain.user.repository.UserRepository
+import io.mockk.Runs
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.just
 import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
@@ -26,7 +28,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import io.mockk.impl.annotations.MockK
 import io.mockk.junit5.MockKExtension
-import org.springframework.messaging.simp.SimpMessagingTemplate
+import org.springframework.context.ApplicationEventPublisher
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.Optional
@@ -51,7 +53,7 @@ class BattleEndServiceTest {
     lateinit var tickerRedisRepository: TickerRedisRepository
 
     @MockK
-    lateinit var messagingTemplate: SimpMessagingTemplate
+    lateinit var applicationEventPublisher: ApplicationEventPublisher
 
     lateinit var battleEndService: BattleEndService
 
@@ -63,7 +65,7 @@ class BattleEndServiceTest {
             userRepository,
             positionRepository,
             tickerRedisRepository,
-            messagingTemplate
+            applicationEventPublisher
         )
     }
 
@@ -93,7 +95,7 @@ class BattleEndServiceTest {
         every { tickerRedisRepository.findByMarket("KRW-BTC") } returns ticker
         every { battleRepository.save(any()) } answers { firstArg() }
         every { battleSessionRepository.save(any()) } answers { firstArg() }
-        justRun { messagingTemplate.convertAndSend(any<String>(), any<Any>()) }
+        every { applicationEventPublisher.publishEvent(any<Any>()) } just Runs
 
         battleEndService.finishBattleInTransaction(battle, Instant.now())
 
@@ -121,7 +123,7 @@ class BattleEndServiceTest {
         every { positionRepository.findByUserIdAndStatus(userId2, PositionStatus.OPEN) } returns emptyList()
         every { battleRepository.save(any()) } answers { firstArg() }
         every { battleSessionRepository.save(any()) } answers { firstArg() }
-        justRun { messagingTemplate.convertAndSend(any<String>(), any<Any>()) }
+        every { applicationEventPublisher.publishEvent(any<Any>()) } just Runs
 
         battleEndService.finishBattleInTransaction(battle, Instant.now())
 
