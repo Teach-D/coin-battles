@@ -27,9 +27,19 @@ export interface Portfolio {
   totalPnlRate: number;
 }
 
+export interface RecentOrder {
+  orderId: number;
+  ticker: string;
+  side: 'BUY' | 'SELL';
+  executedPrice: number;
+  amount: number;
+  createdAt: string;
+}
+
 export interface PortfolioResponse {
   portfolio: Portfolio;
   positions: Position[];
+  recentOrders: RecentOrder[];
 }
 
 export interface BuyOrderRequest {
@@ -247,4 +257,20 @@ export interface BattleResultResponse {
   endedAt: string | null;
   participants: ParticipantResultResponse[];
   myResult: ParticipantResultResponse | null;
+}
+
+export interface UserProfileResponse {
+  userId: number;
+  nickname: string;
+  profileImageUrl: string | null;
+  email: string;
+}
+
+export interface UserStatsResponse {
+  wins: number;
+  losses: number;
+  draws: number;
+  totalGames: number;
+  winRate: number | null;
+  bestReturnRate: number | null;
 }
