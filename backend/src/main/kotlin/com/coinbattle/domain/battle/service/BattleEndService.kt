@@ -2,15 +2,13 @@ package com.coinbattle.domain.battle.service
 
 import com.coinbattle.common.exception.CoinBattleException
 import com.coinbattle.common.exception.ErrorCode
-import com.coinbattle.domain.battle.dto.response.BattleMessageData
-import com.coinbattle.domain.battle.dto.response.BattleMessageType
 import com.coinbattle.domain.battle.dto.response.BattleRankEntry
 import com.coinbattle.domain.battle.dto.response.BattleResultResponse
-import com.coinbattle.domain.battle.dto.response.BattleWebSocketMessage
 import com.coinbattle.domain.battle.dto.response.ParticipantResultResponse
 import com.coinbattle.domain.battle.entity.Battle
 import com.coinbattle.domain.battle.entity.BattleSession
 import com.coinbattle.domain.battle.enum.BattleStatus
+import com.coinbattle.domain.battle.event.BattleFinishedEvent
 import com.coinbattle.domain.battle.repository.BattleRepository
 import com.coinbattle.domain.battle.repository.BattleSessionRepository
 import com.coinbattle.domain.market.repository.TickerRedisRepository
@@ -20,8 +18,8 @@ import com.coinbattle.domain.user.entity.User
 import com.coinbattle.domain.user.repository.UserRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Lazy
-import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,7 +34,7 @@ class BattleEndService(
     private val userRepository: UserRepository,
     private val positionRepository: PositionRepository,
     private val tickerRedisRepository: TickerRedisRepository,
-    private val messagingTemplate: SimpMessagingTemplate
+    private val applicationEventPublisher: ApplicationEventPublisher
 ) {
     @Autowired
     @Lazy
@@ -88,7 +86,41 @@ class BattleEndService(
         battle.finish(winnerId)
         battleRepository.save(battle)
 
-        broadcastBattleFinished(battle, ranked, userMap)
+        val rankings = buildRankings(battle, ranked, userMap)
+        val participantResults = ranked.mapIndexed { index, sv ->
+            val user = userMap[sv.session.participantId]
+            val profitAmount = sv.finalValuation - battle.seedMoney
+            val profitRate = if (battle.seedMoney > 0) {
+                profitAmount.toDouble() / battle.seedMoney * 100.0
+            } else 0.0
+            ParticipantResultResponse(
+                userId = sv.session.participantId,
+                nickname = user?.nickname ?: "",
+                rank = index + 1,
+                isWinner = sv.session.participantId == battle.winnerId,
+                initialSeed = battle.seedMoney,
+                finalValuation = sv.finalValuation,
+                profitAmount = profitAmount,
+                profitRate = profitRate
+            )
+        }
+        val battleResult = BattleResultResponse(
+            battleId = battle.battleId.toString(),
+            status = battle.status.name,
+            durationMinutes = battle.duration,
+            endedAt = battle.endTime?.toString(),
+            participants = participantResults,
+            myResult = null
+        )
+
+        applicationEventPublisher.publishEvent(
+            BattleFinishedEvent(
+                battleId = battle.battleId.toString(),
+                winnerId = battle.winnerId,
+                rankings = rankings,
+                battleResult = battleResult
+            )
+        )
     }
 
     @Transactional(readOnly = true)
@@ -152,35 +184,21 @@ class BattleEndService(
         return user.balance + positionValue
     }
 
-    private fun broadcastBattleFinished(
+    private fun buildRankings(
         battle: Battle,
         ranked: List<SessionValuation>,
         userMap: Map<Long, User>
-    ) {
-        val rankings = ranked.mapIndexed { index, sv ->
-            val user = userMap[sv.session.participantId]
-            val returnRate = if (battle.seedMoney > 0) {
-                (sv.finalValuation - battle.seedMoney).toDouble() / battle.seedMoney * 100.0
-            } else 0.0
-            BattleRankEntry(
-                rank = index + 1,
-                userId = sv.session.participantId,
-                nickname = user?.nickname ?: "",
-                returnRate = returnRate,
-                currentValuation = sv.finalValuation
-            )
-        }
-
-        messagingTemplate.convertAndSend(
-            "/topic/battle/${battle.battleId}",
-            BattleWebSocketMessage(
-                type = BattleMessageType.BATTLE_FINISHED,
-                battleId = battle.battleId.toString(),
-                data = BattleMessageData(
-                    rankings = rankings,
-                    winnerId = battle.winnerId
-                )
-            )
+    ): List<BattleRankEntry> = ranked.mapIndexed { index, sv ->
+        val user = userMap[sv.session.participantId]
+        val returnRate = if (battle.seedMoney > 0) {
+            (sv.finalValuation - battle.seedMoney).toDouble() / battle.seedMoney * 100.0
+        } else 0.0
+        BattleRankEntry(
+            rank = index + 1,
+            userId = sv.session.participantId,
+            nickname = user?.nickname ?: "",
+            returnRate = returnRate,
+            currentValuation = sv.finalValuation
         )
     }
 
