@@ -48,7 +48,8 @@
       "Bash(./gradlew test *)",
       "Bash(npm run *)",
       "Bash(Select-Object -First 30)",
-      "Bash(./gradlew compileKotlin)"
+      "Bash(./gradlew compileKotlin)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\wkadh\\\\OneDrive\\\\바탕 화면\\\\coding\\\\project\\\\coin-battle\\\\.claude\\\\skills\" -Recurse | ForEach-Object { $_.FullName })"
     ],
     "defaultMode": "plan"
   },

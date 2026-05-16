@@ -58,3 +58,19 @@
 
 - [x] `BattleResultPage.tsx` 생성 — `/result/:battleId` 라우트, `BattleResultCard.tsx` 재사용 + `GET /api/battles/{battleId}/result` 호출
 - [x] `App.tsx` `/result/:battleId` 라우트에 `BattleResultPage` 연결 (현재 빈 `<div>` 대체)
+
+### Backend — 사용자 프로필 API
+
+- [x] `UserController.kt` `PATCH /api/users/me` 추가 — 닉네임 변경 엔드포인트 (`UpdateProfileRequest.kt` DTO 포함, 닉네임 중복 체크)
+- [x] `GET /api/users/me/stats` 추가 — PVP 전적(승/패/승률), 시즌 최고 수익률 반환 (`UserStatsResponse.kt`)
+
+### Frontend — 사용자 프로필 페이지
+
+- [x] `ProfilePage.tsx` 생성 — 닉네임 수정 폼, PVP 전적(승/패/승률), 시즌 최고 수익률 표시
+- [x] `App.tsx` `/profile` 라우트 추가 + 상단 네비게이션에 프로필 링크 연결
+
+### Backend — 결과 카드 이미지 생성 파이프라인
+
+- [ ] `BattleCardImageService.kt` 생성 — AWT/BufferedImage 기반 결과 카드 PNG 생성 (수익률, 승패, 참가자 순위 렌더링)
+- [ ] `S3StorageService.kt` 생성 — Oracle Object Storage 또는 AWS S3 업로드, CDN 공개 URL 반환
+- [ ] `BattleEndService.kt` 수정 — 배틀 종료 후 `@Async` 이미지 생성 트리거 → Redis Pub/Sub `CARD_READY` 메시지로 유저에게 URL 발송

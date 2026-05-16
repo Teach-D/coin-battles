@@ -3,8 +3,11 @@ package com.coinbattle.domain.user.service
 import com.coinbattle.common.exception.CoinBattleException
 import com.coinbattle.common.exception.ErrorCode
 import com.coinbattle.common.util.JwtProvider
+import com.coinbattle.domain.battle.repository.BattleSessionRepository
 import com.coinbattle.domain.user.dto.response.AccessTokenResponse
 import com.coinbattle.domain.user.dto.response.TokenResponse
+import com.coinbattle.domain.user.dto.response.UserProfileResponse
+import com.coinbattle.domain.user.dto.response.UserStatsResponse
 import com.coinbattle.domain.user.entity.AuthProvider
 import com.coinbattle.domain.user.entity.User
 import com.coinbattle.domain.user.repository.UserRepository
@@ -15,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class UserService(
     private val userRepository: UserRepository,
+    private val battleSessionRepository: BattleSessionRepository,
     private val jwtProvider: JwtProvider
 ) {
     fun findOrCreateSocialUser(
@@ -48,6 +52,39 @@ class UserService(
             .orElseThrow { CoinBattleException(ErrorCode.USER_NOT_FOUND) }
         return AccessTokenResponse(
             accessToken = jwtProvider.generateAccessToken(user.id, user.role.name)
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getProfile(userId: Long): UserProfileResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { CoinBattleException(ErrorCode.USER_NOT_FOUND) }
+        return UserProfileResponse(user.id, user.nickname, user.profileImageUrl, user.email)
+    }
+
+    fun updateNickname(userId: Long, nickname: String): UserProfileResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { CoinBattleException(ErrorCode.USER_NOT_FOUND) }
+        if (user.nickname != nickname && userRepository.existsByNickname(nickname)) {
+            throw CoinBattleException(ErrorCode.DUPLICATE_NICKNAME)
+        }
+        user.nickname = nickname
+        return UserProfileResponse(user.id, user.nickname, user.profileImageUrl, user.email)
+    }
+
+    @Transactional(readOnly = true)
+    fun getUserStats(userId: Long): UserStatsResponse {
+        val wins = battleSessionRepository.countWins(userId).toInt()
+        val losses = battleSessionRepository.countLosses(userId).toInt()
+        val draws = battleSessionRepository.countDraws(userId).toInt()
+        val total = wins + losses + draws
+        return UserStatsResponse(
+            wins = wins,
+            losses = losses,
+            draws = draws,
+            totalGames = total,
+            winRate = if (total > 0) wins.toDouble() / total * 100 else null,
+            bestReturnRate = battleSessionRepository.findBestReturnRate(userId)
         )
     }
 
