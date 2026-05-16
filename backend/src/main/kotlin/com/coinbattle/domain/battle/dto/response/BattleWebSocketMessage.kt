@@ -13,7 +13,8 @@ enum class BattleMessageType {
     PARTICIPANT_JOINED,
     BATTLE_STARTED,
     RANK_UPDATE,
-    BATTLE_FINISHED
+    BATTLE_FINISHED,
+    CARD_READY
 }
 
 data class BattleMessageData(
@@ -40,4 +41,11 @@ data class MatchFoundMessage(
 data class MatchParticipant(
     val userId: Long,
     val nickname: String
+)
+
+data class CardReadyMessage(
+    val type: String = "CARD_READY",
+    val battleId: String,
+    val cardImageUrl: String,
+    val timestamp: String = Instant.now().toString()
 )

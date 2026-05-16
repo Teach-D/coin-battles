@@ -29,6 +29,7 @@ import type { BattleResultResponse, ParticipantResultResponse } from '../types';
 interface BattleResultCardProps {
   result: BattleResultResponse;
   currentUserId: number;
+  cardImageUrl?: string;
   onClose: () => void;
 }
 
@@ -119,7 +120,7 @@ function ParticipantRow({
   );
 }
 
-export function BattleResultCard({ result, currentUserId, onClose }: BattleResultCardProps) {
+export function BattleResultCard({ result, currentUserId, cardImageUrl, onClose }: BattleResultCardProps) {
   const navigate = useNavigate();
   const winner = result.participants.find((p) => p.isWinner) ?? result.participants[0];
   const myResult = result.myResult;
@@ -130,13 +131,18 @@ export function BattleResultCard({ result, currentUserId, onClose }: BattleResul
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'CoinBattle 결과', text });
+        await navigator.share({
+          title: 'CoinBattle 결과',
+          text,
+          ...(cardImageUrl ? { url: cardImageUrl } : {}),
+        });
       } catch {
         // 사용자가 취소한 경우 무시
       }
     } else {
       try {
-        await navigator.clipboard.writeText(text);
+        const shareText = cardImageUrl ? `${text}\n${cardImageUrl}` : text;
+        await navigator.clipboard.writeText(shareText);
         alert('결과가 클립보드에 복사되었습니다!');
       } catch {
         // clipboard 접근 불가 시 무시
@@ -248,6 +254,17 @@ export function BattleResultCard({ result, currentUserId, onClose }: BattleResul
               )}
             </div>
           </div>
+
+          {cardImageUrl && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 }}
+              className="mx-4 mb-2 rounded-2xl overflow-hidden border border-zinc-700"
+            >
+              <img src={cardImageUrl} alt="결과 카드" className="w-full h-auto" />
+            </motion.div>
+          )}
 
           <motion.div
             initial={{ opacity: 0 }}

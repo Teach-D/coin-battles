@@ -222,14 +222,22 @@ export interface BattleRankingEntry {
 }
 
 export interface BattleStompMessage {
-  type: 'PARTICIPANT_JOINED' | 'BATTLE_STARTED' | 'RANK_UPDATE' | 'BATTLE_FINISHED';
+  type: 'PARTICIPANT_JOINED' | 'BATTLE_STARTED' | 'RANK_UPDATE' | 'BATTLE_FINISHED' | 'CARD_READY';
   battleId: string;
   data: {
     userId: number | null;
     currentParticipants: number;
     rankings?: BattleRankingEntry[];
     winnerId: number | null;
+    cardImageUrl?: string;
   };
+  timestamp: string;
+}
+
+export interface CardReadyNotification {
+  type: 'CARD_READY';
+  battleId: string;
+  cardImageUrl: string;
   timestamp: string;
 }
 
