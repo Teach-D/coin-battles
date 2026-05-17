@@ -10,6 +10,7 @@ import { BattleRoom } from './pages/BattleRoom';
 import { PortfolioPage } from './pages/PortfolioPage';
 import { BattleResultPage } from './pages/BattleResultPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { JoinByInvitePage } from './pages/JoinByInvitePage';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
       <Route path="/result/:battleId" element={<AuthGuard><BattleResultPage /></AuthGuard>} />
       <Route path="/portfolio" element={<AuthGuard><PortfolioPage /></AuthGuard>} />
       <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+      <Route path="/join/:inviteCode" element={<AuthGuard><JoinByInvitePage /></AuthGuard>} />
     </Routes>
   );
 }

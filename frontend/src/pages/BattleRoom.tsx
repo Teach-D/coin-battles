@@ -7,6 +7,7 @@ import { useBattleStore } from '../store/useBattleStore';
 import { useAuthStore } from '../store/authStore';
 import { useBattleResult } from '../hooks/useBattleResult';
 import { BattleResultCard } from '../components/BattleResultCard';
+import { InviteButton } from '../components/battle/InviteButton';
 import type { BattleRankingEntry, BattleStompMessage, CardReadyNotification } from '../types';
 
 function parseUserIdFromToken(token: string | null): number {
@@ -219,9 +220,11 @@ function WaitingView({
 }
 
 function InProgressView({
+  battleId,
   endTime,
   rankings,
 }: {
+  battleId: string;
   endTime: string | null;
   rankings: BattleRankingEntry[];
 }) {
@@ -256,6 +259,8 @@ function InProgressView({
           <p className="text-center py-8 text-zinc-600 text-sm">순위 데이터 없음</p>
         )}
       </div>
+
+      <InviteButton battleId={battleId} />
     </motion.div>
   );
 }
@@ -512,6 +517,7 @@ export function BattleRoom() {
           {currentBattle.status === 'IN_PROGRESS' && (
             <InProgressView
               key="in-progress"
+              battleId={currentBattle.battleId}
               endTime={currentBattle.endTime}
               rankings={rankings}
             />

@@ -1,5 +1,7 @@
 package com.coinbattle.domain.battle.entity
 
+import com.coinbattle.common.exception.CoinBattleException
+import com.coinbattle.common.exception.ErrorCode
 import com.coinbattle.domain.battle.enum.BattleStatus
 import jakarta.persistence.*
 import org.hibernate.annotations.CreationTimestamp
@@ -76,6 +78,18 @@ class Battle {
     }
 
     fun addParticipant() {
+        currentParticipants++
+    }
+
+    fun canGenerateInvite(): Boolean = status == BattleStatus.IN_PROGRESS
+
+    fun addLateParticipant() {
+        if (status != BattleStatus.IN_PROGRESS) {
+            throw CoinBattleException(ErrorCode.BATTLE_NOT_IN_PROGRESS)
+        }
+        if (currentParticipants >= maxParticipants) {
+            throw CoinBattleException(ErrorCode.BATTLE_FULL)
+        }
         currentParticipants++
     }
 }
