@@ -120,6 +120,13 @@ export interface RankingEntry {
   evaluatedValue: number;
 }
 
+export interface PvpRankingEntry {
+  rank: number;
+  userId: number;
+  nickname: string;
+  winRatePct: number;
+}
+
 export interface MyRankingSlot {
   rank: number | null;
   evaluatedValue: number;
@@ -293,4 +300,11 @@ export interface JoinByInviteResponse {
   battleId: string;
   battleRoomUrl: string;
   joinedAt: string;
+}
+
+export interface LiquidationCardReadyNotification {
+  type: 'LIQUIDATION_CARD_READY';
+  ticker: string;
+  cardImageUrl: string;
+  timestamp: string;
 }

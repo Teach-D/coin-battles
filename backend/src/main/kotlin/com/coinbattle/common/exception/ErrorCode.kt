@@ -35,4 +35,5 @@ enum class ErrorCode(val status: Int, val message: String) {
     INVITE_CODE_NOT_FOUND(404, "초대 코드가 만료되었거나 존재하지 않습니다"),
     ALREADY_JOINED_BATTLE(409, "이미 이 배틀에 참가 중입니다"),
     BATTLE_ALREADY_FINISHED(400, "이미 종료된 배틀입니다"),
+    VALIDATION_FAILED(400, "유효하지 않은 요청입니다"),
 }

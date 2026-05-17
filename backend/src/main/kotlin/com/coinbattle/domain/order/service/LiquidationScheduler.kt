@@ -1,5 +1,6 @@
 package com.coinbattle.domain.order.service
 
+import com.coinbattle.domain.battle.service.BattleCardPipelineService
 import com.coinbattle.domain.market.repository.TickerRedisRepository
 import com.coinbattle.domain.order.dto.LiquidationNotificationMessage
 import com.coinbattle.domain.order.entity.OrderDirection
@@ -18,14 +19,15 @@ import org.springframework.stereotype.Component
 import jakarta.annotation.PostConstruct
 import jakarta.annotation.PreDestroy
 import java.math.BigDecimal
-import java.time.LocalDateTime
+import java.time.Instant
 
 @Component
 class LiquidationScheduler(
     private val positionRepository: PositionRepository,
     private val tickerRedisRepository: TickerRedisRepository,
     private val orderService: OrderService,
-    private val messagingTemplate: SimpMessagingTemplate
+    private val messagingTemplate: SimpMessagingTemplate,
+    private val battleCardPipelineService: BattleCardPipelineService
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -73,9 +75,17 @@ class LiquidationScheduler(
                             ticker = position.ticker,
                             positionType = position.direction.name,
                             lossAmount = lossAmount,
-                            liquidatedAt = LocalDateTime.now()
+                            liquidatedAt = Instant.now()
                         )
                     )
+                    scope.launch {
+                        battleCardPipelineService.generateAndBroadcastLiquidationCard(
+                            userId = position.userId,
+                            ticker = position.ticker,
+                            lossAmount = lossAmount.toLong(),
+                            leverage = position.leverage
+                        )
+                    }
                 }.onFailure {
                     log.error("forceClose failed positionId={}", position.id, it)
                 }

@@ -47,10 +47,10 @@ class SecurityConfig(
                     "/api/market/**",
                     "/api/ranking/season",
                     "/api/ranking/daily",
+                    "/api/rankings",
                     "/oauth2/**",
                     "/login/**",
                     "/ws-connect/**",
-                    "/topic/**",
                     "/actuator/health"
                 ).permitAll()
                 it.anyRequest().authenticated()

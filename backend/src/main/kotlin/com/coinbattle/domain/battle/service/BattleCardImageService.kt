@@ -62,4 +62,38 @@ class BattleCardImageService {
         ImageIO.write(image, "png", outputStream)
         return outputStream.toByteArray()
     }
+
+    fun generateLiquidationCard(ticker: String, lossAmount: Long, leverage: Int): ByteArray {
+        val width = 800
+        val height = 400
+        val image = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+        val g = image.createGraphics()
+
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+
+        g.color = Color(0x1A, 0x0A, 0x0A)
+        g.fillRect(0, 0, width, height)
+
+        g.color = Color.WHITE
+        g.font = Font("SansSerif", Font.BOLD, 36)
+        g.drawString("💀 LIQUIDATED", 40, 80)
+
+        g.font = Font("SansSerif", Font.BOLD, 48)
+        g.drawString(ticker, 40, 160)
+
+        g.color = Color(0xF8, 0x71, 0x71)
+        g.font = Font("SansSerif", Font.BOLD, 36)
+        g.drawString("-${lossAmount}원", 40, 240)
+
+        g.color = Color(0x9C, 0x9C, 0x9C)
+        g.font = Font("SansSerif", Font.PLAIN, 24)
+        g.drawString("${leverage}x 레버리지", 40, 300)
+
+        g.dispose()
+
+        val outputStream = ByteArrayOutputStream()
+        ImageIO.write(image, "png", outputStream)
+        return outputStream.toByteArray()
+    }
 }
