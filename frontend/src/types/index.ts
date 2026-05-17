@@ -282,3 +282,15 @@ export interface UserStatsResponse {
   winRate: number | null;
   bestReturnRate: number | null;
 }
+
+export interface InviteCodeResponse {
+  inviteCode: string;
+  inviteUrl: string;
+  expiresAt: string;
+}
+
+export interface JoinByInviteResponse {
+  battleId: string;
+  battleRoomUrl: string;
+  joinedAt: string;
+}

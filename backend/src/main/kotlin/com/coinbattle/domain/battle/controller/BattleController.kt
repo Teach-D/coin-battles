@@ -6,12 +6,15 @@ import com.coinbattle.domain.battle.dto.request.MatchBattleRequest
 import com.coinbattle.domain.battle.dto.response.BattleListResponse
 import com.coinbattle.domain.battle.dto.response.BattleResponse
 import com.coinbattle.domain.battle.dto.response.BattleResultResponse
+import com.coinbattle.domain.battle.dto.response.InviteCodeResponse
 import com.coinbattle.domain.battle.dto.response.JoinBattleResponse
+import com.coinbattle.domain.battle.dto.response.JoinByInviteResponse
 import com.coinbattle.domain.battle.dto.response.MatchQueueResponse
 import com.coinbattle.domain.battle.enum.BattleStatus
 import com.coinbattle.domain.battle.service.BattleEndService
 import com.coinbattle.domain.battle.service.BattleMatchingService
 import com.coinbattle.domain.battle.service.BattleService
+import com.coinbattle.domain.battle.service.InviteService
 import com.coinbattle.domain.user.entity.CoinBattlePrincipal
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -32,7 +35,8 @@ import java.util.UUID
 class BattleController(
     private val battleService: BattleService,
     private val battleMatchingService: BattleMatchingService,
-    private val battleEndService: BattleEndService
+    private val battleEndService: BattleEndService,
+    private val inviteService: InviteService
 ) {
     @PostMapping
     fun createBattle(
@@ -93,6 +97,24 @@ class BattleController(
         @PathVariable battleId: UUID
     ): ResponseEntity<ApiResponse<BattleResultResponse>> {
         val result = battleEndService.getBattleResult(battleId, principal.user.id)
+        return ResponseEntity.ok(ApiResponse.ok(result))
+    }
+
+    @PostMapping("/{battleId}/invite")
+    fun generateInviteCode(
+        @AuthenticationPrincipal principal: CoinBattlePrincipal,
+        @PathVariable battleId: UUID
+    ): ResponseEntity<ApiResponse<InviteCodeResponse>> {
+        val result = inviteService.generateInviteCode(battleId, principal.user.id)
+        return ResponseEntity.ok(ApiResponse.ok(result))
+    }
+
+    @PostMapping("/join/{inviteCode}")
+    fun joinByInviteCode(
+        @AuthenticationPrincipal principal: CoinBattlePrincipal,
+        @PathVariable inviteCode: String
+    ): ResponseEntity<ApiResponse<JoinByInviteResponse>> {
+        val result = inviteService.joinByInvite(inviteCode, principal.user.id)
         return ResponseEntity.ok(ApiResponse.ok(result))
     }
 }

@@ -74,3 +74,28 @@
 - [ ] `BattleCardImageService.kt` 생성 — AWT/BufferedImage 기반 결과 카드 PNG 생성 (수익률, 승패, 참가자 순위 렌더링)
 - [ ] `S3StorageService.kt` 생성 — Oracle Object Storage 또는 AWS S3 업로드, CDN 공개 URL 반환
 - [ ] `BattleEndService.kt` 수정 — 배틀 종료 후 `@Async` 이미지 생성 트리거 → Redis Pub/Sub `CARD_READY` 메시지로 유저에게 URL 발송
+
+## 2026-05-16
+
+### Backend — 결과 카드 이미지 생성 파이프라인 (이어서)
+
+- [x] `BattleCardImageService.kt` 생성 — AWT/BufferedImage 기반 결과 카드 PNG 생성 (수익률, 승패, 참가자 순위 렌더링)
+- [x] `S3StorageService.kt` 생성 — Oracle Object Storage 또는 AWS S3 업로드, CDN 공개 URL 반환
+- [x] `BattleEndService.kt` 수정 — 배틀 종료 후 `@Async` 이미지 생성 트리거 → Redis Pub/Sub `CARD_READY` 메시지로 유저에게 URL 발송
+
+### Frontend — 결과 카드 이미지 수신 및 표시
+
+- [x] `BattleRoom.tsx` STOMP `/user/{userId}/queue/notification` 구독 추가 — `CARD_READY` 메시지 수신 시 서버 생성 이미지 URL 저장
+- [x] `BattleResultCard.tsx` 수정 — 서버 생성 이미지 URL 있을 경우 `<img>` 태그로 표시, Web Share API에 이미지 URL 포함
+
+### Backend — 친구 초대 배틀 API
+
+- [x] `InviteService.kt` 생성 — UUID 기반 초대 코드 생성, Redis 저장 (TTL 10분), 배틀 상태 검증 (IN_PROGRESS 배틀만 초대 가능)
+- [x] `POST /api/battles/{battleId}/invite` 엔드포인트 추가 (`BattleController.kt`) — 초대 코드 생성, `InviteCodeResponse.kt` DTO 반환
+- [x] `POST /api/battles/join/{inviteCode}` 엔드포인트 추가 (`BattleController.kt`) — 코드 검증, 배틀 참가 처리 (`BattleMatchingService.kt` 재사용)
+
+### Frontend — 친구 초대 UI
+
+- [x] `BattleRoom.tsx` 초대 버튼 추가 — `POST /api/battles/{battleId}/invite` 호출 후 초대 링크 클립보드 복사 + Web Share API 공유
+- [x] `JoinByInvitePage.tsx` 생성 — `/join/:inviteCode` 라우트, 자동 `POST /api/battles/join/{inviteCode}` 호출 후 BattleRoom으로 이동
+- [x] `App.tsx` `/join/:inviteCode` 라우트 추가
