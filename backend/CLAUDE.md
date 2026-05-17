@@ -8,9 +8,10 @@
 ./gradlew build                          # 컴파일 + 테스트 포함 전체 빌드
 ./gradlew bootRun                        # 로컬 실행 (application.yml 기본 프로필)
 ./gradlew bootRun --args='--spring.profiles.active=local'
-./gradlew test                           # 전체 테스트
-./gradlew test --tests "com.coinbattle.order.OrderServiceTest"
+./gradlew test                           # 단위 테스트만 (Docker 불필요, 빠름)
+./gradlew test --tests "*.OrderServiceTest"                    # 특정 클래스만
 ./gradlew test --tests "*.OrderServiceTest.주문금액_100만원_초과시_슬리피지_적용"
+./gradlew integrationTest                # 통합 테스트 (Testcontainers, Docker 필요)
 ./gradlew ktlintCheck                    # 린트 검사
 ./gradlew ktlintFormat                   # 린트 자동 수정
 ```
@@ -161,28 +162,6 @@ applicationEventPublisher.publishEvent(OrderFilledEvent(orderId))
 /user/queue/notification         # 개인 알림
 ```
 
-## 슬리피지 계산
-
-`OrderService` 내부에서만 계산 — 컨트롤러·레포지토리 참조 금지:
-- ≤100만원: 보정 없음
-- 100만~500만원: ±0.05%
-- 500만원~전액: ±0.1~0.3% (SecureRandom)
-
-## 강제청산 계산식
-
-```kotlin
-청산 임계가 = avgEntryPrice × (1 - 1/leverage × 0.9)
-// Position.liquidationThreshold() 참조
-```
-
-## 펀딩비 정산
-
-- `@Scheduled(cron = "0 0 0,8,16 * * *", zone = "UTC")` + `@Async`
-- 전체 오픈 포지션 배치 처리 — 부분 실패 시 로깅 후 계속 진행
-
-## 업비트 장애 Fallback
-
-Circuit Breaker (Resilience4j) — 업비트 WebSocket 실패 시 빗썸 REST API 폴링 자동 전환.
 
 ## 테스트 전략
 
@@ -192,54 +171,42 @@ Circuit Breaker (Resilience4j) — 업비트 WebSocket 실패 시 빗썸 REST AP
 - **통합 테스트**: 실제 PostgreSQL + Redis (Testcontainers) — DB mock 금지
 - **단위 테스트**: 순수 도메인 로직만 (MockK 사용, Mockito 사용 금지)
 
-### 의존성
+### 테스트 소스셋 분리 — 에이전트 필수 준수
 
-- 단위 테스트 목킹: `io.mockk:mockk:1.13.13`
-- 통합 테스트: `org.testcontainers:postgresql`, `org.testcontainers:redis`
-- 비동기 테스트: `@SpringBootTest` + `CompletableFuture.get()` 완료 대기
-- Coroutine 테스트: `kotlinx-coroutines-test` + `runTest { }`
+| 소스셋 | 경로 | Gradle 태스크 | Docker | 속도 |
+|--------|------|--------------|--------|------|
+| 단위 테스트 | `src/test/kotlin/` | `./gradlew test` | 불필요 | 빠름 |
+| 통합 테스트 | `src/integrationTest/kotlin/` | `./gradlew integrationTest` | 필요 | 느림 |
+
+**파일 배치 규칙**
+- `@SpringBootTest` + `@Testcontainers` 사용 → `src/integrationTest/kotlin/` 에 작성
+- MockK만 사용하는 순수 단위 테스트 → `src/test/kotlin/` 에 작성
+
+### TDD Red→Green 사이클 — 에이전트 실행 순서
+
+**반복 사이클 (빠른 피드백):**
+```bash
+./gradlew test --tests "*.{작성한테스트클래스명}"   # 해당 단위 테스트만 실행
+```
+
+**단위 테스트 전체 통과 후:**
+```bash
+./gradlew test   # 전체 단위 테스트 확인
+```
+
+**구현 완료 후 최종 1회만:**
+```bash
+./gradlew integrationTest   # Testcontainers 통합 테스트
+```
+
+> Testcontainers 컨테이너 기동 비용(10~30초)을 마지막 1회로 제한한다.
+> Red→Green 사이클 중간에 `integrationTest` 태스크를 실행하지 않는다.
 
 ### 테스트 파일 위치
 
 - 구현: `src/main/kotlin/com/coinbattle/{domain}/{Class}.kt`
-- 테스트: `src/test/kotlin/com/coinbattle/{domain}/{Class}Test.kt`
-
-### 단위 테스트 패턴 (MockK)
-
-```kotlin
-@ExtendWith(MockKExtension::class)
-class OrderServiceTest {
-    @MockK lateinit var orderRepository: OrderRepository
-    @InjectMockKs lateinit var orderService: OrderService
-
-    @Test
-    fun `주문금액_100만원_초과시_슬리피지_적용`() {
-        every { orderRepository.save(any()) } answers { firstArg() }
-        // when / then
-    }
-}
-```
-
-### 통합 테스트 패턴 (Testcontainers)
-
-```kotlin
-@SpringBootTest
-@Testcontainers
-class OrderIntegrationTest {
-    companion object {
-        @Container @JvmStatic
-        val postgres = PostgreSQLContainer<Nothing>("postgres:16")
-        @Container @JvmStatic
-        val redis = GenericContainer<Nothing>("redis:7-alpine").withExposedPorts(6379)
-    }
-
-    @DynamicPropertySource
-    fun configureProperties(registry: DynamicPropertyRegistry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl)
-        registry.add("spring.data.redis.port") { redis.getMappedPort(6379) }
-    }
-}
-```
+- 단위 테스트: `src/test/kotlin/com/coinbattle/{domain}/{Class}Test.kt`
+- 통합 테스트: `src/integrationTest/kotlin/com/coinbattle/{domain}/{Class}Test.kt`
 
 ### 단위 테스트 대상
 
