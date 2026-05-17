@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { ApiResponse, RankingEntry, MyRanking } from '../types';
+import type { ApiResponse, RankingEntry, PvpRankingEntry, MyRanking } from '../types';
 
 export function useRankingSeason() {
   return useQuery({
@@ -20,6 +20,21 @@ export function useRankingDaily() {
     queryKey: ['ranking', 'daily'],
     queryFn: async () => {
       const response = await api.get<ApiResponse<RankingEntry[]>>('/api/ranking/daily');
+      return response.data.data;
+    },
+    staleTime: 30_000,
+    gcTime: 60_000,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useRankingPvp() {
+  return useQuery({
+    queryKey: ['ranking', 'pvp'],
+    queryFn: async () => {
+      const response = await api.get<ApiResponse<PvpRankingEntry[]>>('/api/rankings', {
+        params: { type: 'PVP' },
+      });
       return response.data.data;
     },
     staleTime: 30_000,
